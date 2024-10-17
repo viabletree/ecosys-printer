@@ -3,7 +3,9 @@ import cors from "cors";
 import multer from "multer";
 import path from "path";
 import ptp from "pdf-to-printer";
-import { generatePDF } from "./helper.js";
+import helper from "./helper.js";
+
+const { generatePDF } = helper;
 
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
@@ -35,44 +37,47 @@ app.post("/api/file-upload", upload.single("file"), async (req, res) => {
 
 app.post("/api/generate-barcodes", async (req, res) => {
   try {
-    const array = [
-      {
-        barCode: "sidjsjd2323",
-        score: "500",
-        intCode: "232313",
-        suppSubName: "2323232w",
-        suppLocation: "232232",
-        blWeight: "3432323",
-      },
+    const body = req?.body;
+    // const array = [
+    //   {
+    //     barCode: "bbbbbbbbbb",
+    //     score: "50",
+    //     intCode: "232313",
+    //     suppSubName: "2323232w",
+    //     suppLocation: "232232",
+    //     blWeight: "3432323",
+    //   },
 
-      {
-        barCode: "sjdsjdnjds",
-        score: "300",
-        intCode: "sds",
-        suppSubName: "dsfds",
-        suppLocation: "232232",
-        blWeight: "3432323",
-      },
+    //   {
+    //     barCode: "aaaaaaaaaa",
+    //     score: "30",
+    //     intCode: "sds",
+    //     suppSubName: "dsfds",
+    //     suppLocation: "232232",
+    //     blWeight: "3432323",
+    //   },
 
-      {
-        barCode: "sidjsjd2323",
-        score: "3022",
-        intCode: "232313",
-        suppSubName: "2323232w",
-        suppLocation: "232232",
-        blWeight: "23232",
-      },
-    ];
+    //   {
+    //     barCode: "sidjsjd2323",
+    //     score: "30",
+    //     intCode: "232313",
+    //     suppSubName: "2323232w",
+    //     suppLocation: "232232",
+    //     blWeight: "23232",
+    //   },
+    // ];
 
-    for (let item of array) {
-      await generatePDF(
-        item.barCode,
-        item.score,
-        item.intCode,
-        item.suppSubName,
-        item.suppLocation,
-        item.blWeight
-      );
+    if (body?.length > 0) {
+      for (let item of body) {
+        await generatePDF(
+          item.barCode,
+          item.score,
+          item.intCode,
+          item.suppSubName,
+          item.suppLocation,
+          item.blWeight
+        );
+      }
     }
 
     return res.status(200).json({ success: "barcodes generated successfully" });

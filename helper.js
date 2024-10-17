@@ -9,20 +9,41 @@ const { print, getPrinters } = pkg;
 function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
-const sendToPrint = async () => {
-  sleep(5000);
+
+const getPrinterList = async (barCode) => {
+  // const printersName = await getPrinters()
+  // console.log(printersName.length)
+  // for (let i = 0; i < printersName.length; i++) {
+  //     console.log(printersName[i].name)
+  // }
+
+  sleep(10000);
+
   const options = {
     printer: "Zebra S4M (203 dpi) - ZPL",
     pages: "1",
+    // scale: "fit",
   };
+
   try {
-    print(path.resolve("output.pdf"), options).then(console.log);
+    return print(`rotated_output_${barCode}.pdf`, options).then(() => {
+      console.log("doc printed");
+
+      const rotatedOutputPath = `rotated_output_${barCode}.pdf`;
+
+      const outputPath = `output_${barCode}.pdf`;
+
+      fs.unlinkSync(rotatedOutputPath);
+      fs.unlinkSync(outputPath);
+    });
   } catch (error) {
     console.log(error);
   }
 };
+
 // 2.4 W
 // 3.5 H
+
 const generatePDF = async (
   barCode,
   score,
@@ -31,65 +52,87 @@ const generatePDF = async (
   suppLocation,
   blWeight
 ) => {
-  await bwipjs.toBuffer(
-    {
-      bcid: "code128",
-      text: barCode,
-      scale: 3,
-      height: 10,
-      includetext: true,
-    },
-    function (err, png) {
-      if (err) {
-        console.error(err);
-      } else {
-        // Write the PNG image to disk
-        fs.writeFileSync(path.resolve("generated-barcode.png"), png);
-        // Create a PDF and add the barcode image
-        const doc = new PDFDocument({
-          size: [270, 180],
-          layout: "portrait",
-        });
-        doc.pipe(fs.createWriteStream(path.resolve("output.pdf")));
-        doc.image("generated-barcode.png", 10, 10, {
-          width: 210,
-          height: 40,
-        });
-        doc.fontSize(30).text(score, 225, 15, { height: 70, width: 50 });
-        doc.fontSize(9).text(intCode, 10, 55, { height: 20, width: 30 });
-        doc.fontSize(9).text(suppSubName, 75, 55, { height: 20, width: 50 });
-        doc.fontSize(9).text(suppLocation, 145, 55, { height: 20, width: 50 });
-        doc
-          .fontSize(9)
-          .text(Math.round(blWeight).toLocaleString("en-US"), 215, 55, {
-            height: 20,
-          });
-        doc.image("generated-barcode.png", 10, 90, {
-          width: 210,
-          height: 40,
-        });
-        doc.fontSize(30).text(score, 225, 95, { height: 70, width: 50 });
-        doc.fontSize(9).text(intCode, 10, 140, { height: 20, width: 50 });
-        doc.fontSize(9).text(suppSubName, 75, 140, { height: 20, width: 50 });
-        doc.fontSize(9).text(suppLocation, 145, 140, { height: 20, width: 50 });
-        doc
-          .fontSize(9)
-          .text(Math.round(blWeight).toLocaleString("en-US"), 215, 140, {
-            height: 20,
-          });
-        doc.end();
-        doc.rotate(90);
-        console.log("PDF with generated barcode created.");
+  return new Promise((resolve, reject) => {
+    bwipjs.toBuffer(
+      {
+        bcid: "code128",
+        text: barCode,
+        scale: 3,
+        height: 10,
+        includetext: true,
+      },
+      async function (err, png) {
+        if (err) {
+          console.error(err);
+          reject(err);
+        } else {
+          // Write the PNG image to disk
+          fs.writeFileSync("generated-barcode.png", png);
 
-        doc.on("end", async () => {
-          console.log("PDF created successfully");
-          //   await rotatePdf("output.pdf", "getPrinterList.pdf");
-          console.log("PDF rotated successfully");
-          await sendToPrint();
-        });
+          // Create a PDF and add the barcode image
+          const doc = new PDFDocument({
+            size: [270, 180],
+            layout: "portrait",
+          });
+          doc.pipe(fs.createWriteStream(`output_${barCode}.pdf`));
+          doc.image("generated-barcode.png", 10, 20, {
+            width: 180,
+            height: 40,
+          });
+          doc.fontSize(30).text(score + 1, 200, 40, { height: 70, width: 50 });
+
+          doc.fontSize(9).text(intCode, 10, 70, { height: 20, width: 30 });
+          doc.fontSize(9).text(suppSubName, 75, 70, { height: 20, width: 50 });
+          doc
+            .fontSize(9)
+            .text(suppLocation, 145, 70, { height: 20, width: 50 });
+          doc
+            .fontSize(9)
+            .text(Math.round(blWeight).toLocaleString("en-US"), 215, 55, {
+              height: 20,
+            });
+
+          doc.image("generated-barcode.png", 10, 105, {
+            width: 180,
+            height: 40,
+          });
+          doc.fontSize(30).text(score, 200, 110, { height: 70, width: 50 });
+
+          doc.fontSize(9).text(intCode, 10, 155, { height: 20, width: 50 });
+          doc.fontSize(9).text(suppSubName, 75, 155, { height: 20, width: 50 });
+          doc
+            .fontSize(9)
+            .text(suppLocation, 145, 155, { height: 20, width: 50 });
+          doc
+            .fontSize(9)
+            .text(Math.round(blWeight).toLocaleString("en-US"), 215, 140, {
+              height: 20,
+            });
+
+          // Finalize the PDF
+          doc.end();
+
+          doc.on("end", async () => {
+            // Rotate the PDF and print
+            setTimeout(async () => {
+              console.log("Waiting for 10 seconds");
+              await rotatePdf(
+                `output_${barCode}.pdf`,
+                `rotated_output_${barCode}.pdf`
+              );
+
+              setTimeout(async () => {
+                console.log("Waiting for 10 seconds");
+                await getPrinterList(barCode);
+              }, 1000);
+            }, 1000);
+            resolve();
+          });
+        }
+        console.log("PDF with generated barcode created.");
       }
-    }
-  );
+    );
+  });
 };
 
-export { generatePDF, getPrinters as getPrinterList };
+export default { generatePDF, getPrinterList };
