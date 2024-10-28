@@ -5,7 +5,7 @@ import path from "path";
 import ptp from "pdf-to-printer";
 import helper from "./helper.js";
 
-const { generatePDF } = helper;
+const { generatePDF, generatePDFQrCode } = helper;
 
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
