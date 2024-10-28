@@ -76,10 +76,10 @@ const generatePDF = async (
           });
           doc.pipe(fs.createWriteStream(`output_${barCode}.pdf`));
           doc.image("generated-barcode.png", 10, 20, {
-            width: 180,
+            width: 155,
             height: 40,
           });
-          doc.fontSize(30).text(score + 1, 200, 40, { height: 70, width: 50 });
+          doc.fontSize(30).text(score, 175, 40, { height: 70, width: 50 });
 
           doc.fontSize(9).text(intCode, 10, 70, { height: 20, width: 30 });
           doc.fontSize(9).text(suppSubName, 75, 70, { height: 20, width: 50 });
@@ -92,17 +92,17 @@ const generatePDF = async (
               height: 20,
             });
 
-          doc.image("generated-barcode.png", 10, 105, {
-            width: 180,
+          doc.image("generated-barcode.png", 10, 95, {
+            width: 155,
             height: 40,
           });
-          doc.fontSize(30).text(score, 200, 110, { height: 70, width: 50 });
+          doc.fontSize(30).text(score, 175, 110, { height: 70, width: 50 });
 
-          doc.fontSize(9).text(intCode, 10, 155, { height: 20, width: 50 });
-          doc.fontSize(9).text(suppSubName, 75, 155, { height: 20, width: 50 });
+          doc.fontSize(9).text(intCode, 10, 140, { height: 20, width: 50 });
+          doc.fontSize(9).text(suppSubName, 75, 140, { height: 20, width: 50 });
           doc
             .fontSize(9)
-            .text(suppLocation, 145, 155, { height: 20, width: 50 });
+            .text(suppLocation, 145, 140, { height: 20, width: 50 });
           doc
             .fontSize(9)
             .text(Math.round(blWeight).toLocaleString("en-US"), 215, 140, {

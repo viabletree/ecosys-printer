@@ -67,6 +67,8 @@ app.post("/api/generate-barcodes", async (req, res) => {
     //   },
     // ];
 
+    console.log("body -->>>", body);
+
     if (body?.length > 0) {
       for (let item of body) {
         await generatePDF(
