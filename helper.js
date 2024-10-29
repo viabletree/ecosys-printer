@@ -144,11 +144,15 @@ const generatePDFQrCode = async (
   suppLocation,
   blWeight
 ) => {
-  return new Promise((resolve, reject) => {
+  return new Promise(async (resolve, reject) => {
     // Write the PNG image to disk
-    qrcode
-      .image(barCode, { type: "png", size: 40, margin: 0 })
-      .pipe(fs.createWriteStream("generated-barcode.png"));
+    const image = qrcode.imageSync(barCode, {
+      type: "png",
+      size: 40,
+      margin: 0,
+    });
+    // .pipe(fs.createWriteStream(`generated_qrcode.png`));
+
     // fs.writeFileSync("generated-barcode.png", png);
 
     // Create a PDF and add the barcode image
@@ -157,7 +161,7 @@ const generatePDFQrCode = async (
       layout: "portrait",
     });
     doc.pipe(fs.createWriteStream(`output_${barCode}.pdf`));
-    doc.image("generated-barcode.png", 10, 20, {
+    doc.image(image, 10, 20, {
       width: 60,
       height: 60,
     });
@@ -171,7 +175,7 @@ const generatePDFQrCode = async (
       height: 20,
     });
 
-    doc.image("generated-barcode.png", 10, 95, {
+    doc.image(image, 10, 95, {
       width: 55,
       height: 55,
     });
@@ -201,6 +205,7 @@ const generatePDFQrCode = async (
         setTimeout(async () => {
           console.log("Waiting for 10 seconds");
           await getPrinterList(barCode);
+          // fs.unlinkSync(`generated_qrcode.png`);
         }, 1000);
       }, 1000);
       resolve();

@@ -69,16 +69,28 @@ app.post("/api/generate-barcodes", async (req, res) => {
 
     console.log("body -->>>", body);
 
-    if (body?.length > 0) {
-      for (let item of body) {
-        await generatePDF(
-          item.barCode,
-          item.score,
-          item.intCode,
-          item.suppSubName,
-          item.suppLocation,
-          item.blWeight
-        );
+    const { items, isBarcode } = body;
+
+    if (items?.length > 0) {
+      for (let item of items) {
+        if (isBarcode)
+          await generatePDF(
+            item.barCode,
+            item.score,
+            item.intCode,
+            item.suppSubName,
+            item.suppLocation,
+            item.blWeight
+          );
+        else
+          await generatePDFQrCode(
+            item.barCode,
+            item.score,
+            item.intCode,
+            item.suppSubName,
+            item.suppLocation,
+            item.blWeight
+          );
       }
     }
 
