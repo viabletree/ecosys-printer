@@ -4,8 +4,10 @@ import multer from "multer";
 import path from "path";
 import ptp from "pdf-to-printer";
 import helper from "./helper.js";
+import dotenv from "dotenv";
+dotenv.config();
 
-const { generatePDF, generatePDFQrCode } = helper;
+const { generatePDF, generateFullBarcode } = helper;
 
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
@@ -38,42 +40,14 @@ app.post("/api/file-upload", upload.single("file"), async (req, res) => {
 app.post("/api/generate-barcodes", async (req, res) => {
   try {
     const body = req?.body;
-    // const array = [
-    //   {
-    //     barCode: "bbbbbbbbbb",
-    //     score: "50",
-    //     intCode: "232313",
-    //     suppSubName: "2323232w",
-    //     suppLocation: "232232",
-    //     blWeight: "3432323",
-    //   },
-
-    //   {
-    //     barCode: "aaaaaaaaaa",
-    //     score: "30",
-    //     intCode: "sds",
-    //     suppSubName: "dsfds",
-    //     suppLocation: "232232",
-    //     blWeight: "3432323",
-    //   },
-
-    //   {
-    //     barCode: "sidjsjd2323",
-    //     score: "30",
-    //     intCode: "232313",
-    //     suppSubName: "2323232w",
-    //     suppLocation: "232232",
-    //     blWeight: "23232",
-    //   },
-    // ];
-
+  
     console.log("body -->>>", body);
 
     const { items, isBarcode } = body;
 
     if (items?.length > 0) {
       for (let item of items) {
-        if (isBarcode)
+
           await generatePDF(
             item.barCode,
             item.score,
@@ -82,15 +56,7 @@ app.post("/api/generate-barcodes", async (req, res) => {
             item.suppLocation,
             item.blWeight
           );
-        else
-          await generatePDFQrCode(
-            item.barCode,
-            item.score,
-            item.intCode,
-            item.suppSubName,
-            item.suppLocation,
-            item.blWeight
-          );
+        
       }
     }
 
@@ -100,4 +66,42 @@ app.post("/api/generate-barcodes", async (req, res) => {
     return res.status(500).json({ error: error });
   }
 });
-app.listen(8000, () => console.log("RUNNING ON PORT 8000"));
+app.post("/api/generate-full-barcodes", async (req, res) => {
+  try {
+    const body = req?.body;
+  
+    console.log("body -->>>", body);
+    if(body.legacyCode && body.productName && body.productCategory){
+
+      await generateFullBarcode(
+        body.legacyCode,
+        body.productName,
+        body.productCategory
+      );
+  
+      return res.status(200).json({ success: "barcodes generated successfully" });
+    }else{
+      // check 
+      const msg = 'Please provide the required fields';
+      return res.status(400).json({
+        data: [
+          {
+            message: msg,
+            key: "company",
+            data: {
+              key: msg,
+            },
+          },
+        ],
+        message: msg,
+        status: false,
+        statusCode: 400,
+      });
+    }
+
+  } catch (error) {
+    console.error("generate barcodes error -->>", error);
+    return res.status(500).json({ error: error });
+  }
+});
+app.listen(process.env.PORT, () => console.log("RUNNING ON PORT "+process.env.PORT));
