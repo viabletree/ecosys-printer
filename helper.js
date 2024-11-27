@@ -158,7 +158,7 @@ const y = 150; // Set the y coordinate for ver
 
               setTimeout(async () => {
                 console.log("Waiting for 10 seconds");
-                // await getFullPrinterList(barCode);
+                await getFullPrinterList(barCode);
                 // remove all files inside uploads directory
                 await clearDirectory(uploadDir);
               }, 1000);
@@ -273,7 +273,7 @@ const generatePDF = async (
 
               setTimeout(async () => {
                 console.log("Waiting for 10 seconds");
-                // await getPrinterList(barCode);
+                await getPrinterList(barCode);
                 // remove all files inside uploads directory
                 await clearDirectory(uploadDir);
               }, 1000);
@@ -297,17 +297,17 @@ async function clearDirectory(directory) {
     return;
   }
 
-  // try {
-  //   const files = await fs.promises.readdir(directory); // Read directory contents
-  //   for (const file of files) {
-  //     const filePath = path.join(directory, file);
-  //     await fs.promises.unlink(filePath); // Asynchronously delete each file
-  //     console.log(`Deleted file: ${filePath}`);
-  //   }
-  //   console.log(`All files in '${directory}' have been deleted.`);
-  // } catch (err) {
-  //   console.error(`Error while clearing directory '${directory}':`, err);
-  // }
+  try {
+    const files = await fs.promises.readdir(directory); // Read directory contents
+    for (const file of files) {
+      const filePath = path.join(directory, file);
+      await fs.promises.unlink(filePath); // Asynchronously delete each file
+      console.log(`Deleted file: ${filePath}`);
+    }
+    console.log(`All files in '${directory}' have been deleted.`);
+  } catch (err) {
+    console.error(`Error while clearing directory '${directory}':`, err);
+  }
 }
 
 const generatePDFQrCode = async (

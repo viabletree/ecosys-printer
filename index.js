@@ -69,27 +69,31 @@ app.post("/api/generate-barcodes", async (req, res) => {
 app.post("/api/generate-full-barcodes", async (req, res) => {
   try {
     const body = req?.body;
+    const err = [];
   
     console.log("body -->>>", body);
-    if(body.legacyCode && body.productName && body.productCategory){
-
-      await generateFullBarcode(
-        body.legacyCode,
-        body.productName,
-        body.productCategory
-      );
-  
-      return res.status(200).json({ success: "barcodes generated successfully" });
-    }else{
-      // check 
+    for(let i=0; i<body.length; i++){
+      const item = body[i];
+      if(!item.legacyCode){
+        err.push('legacyCode');
+      }
+      if(!item.productName){
+        err.push('productName');
+      }
+      if(!item.productCategory){
+        err.push('productCategory');
+      }
+    }
+    if(err.length > 0){
+      // check which field is missing
       const msg = 'Please provide the required fields';
       return res.status(400).json({
         data: [
           {
             message: msg,
-            key: "company",
+            key: "product",
             data: {
-              key: msg,
+              key: msg.join(', '),
             },
           },
         ],
@@ -98,6 +102,51 @@ app.post("/api/generate-full-barcodes", async (req, res) => {
         statusCode: 400,
       });
     }
+
+
+    for(let i=0; i<body.length; i++){ 
+      const item = body[i];
+      await generateFullBarcode(
+        item.legacyCode,
+        item.productName,
+        item.productCategory
+      );
+    }
+
+      return res.status(200).json({
+        status: true,
+        message: "Barcode printed successfully uploaded successfully",
+      });
+    // if(item.legacyCode && item.productName && item.productCategory){
+
+    //   await generateFullBarcode(
+    //     item.legacyCode,
+    //     item.productName,
+    //     item.productCategory
+    //   );
+  
+    //   return res.status(200).json({
+    //     status: true,
+    //     message: "Barcode printed successfully uploaded successfully",
+    //   });
+    // }else{
+    //   // check which field is missing
+    //   const msg = 'Please provide the required fields';
+    //   return res.status(400).json({
+    //     data: [
+    //       {
+    //         message: msg,
+    //         key: "product",
+    //         data: {
+    //           key: msg,
+    //         },
+    //       },
+    //     ],
+    //     message: msg,
+    //     status: false,
+    //     statusCode: 400,
+    //   });
+    // }
 
   } catch (error) {
     console.error("generate barcodes error -->>", error);
