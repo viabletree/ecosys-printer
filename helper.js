@@ -80,26 +80,24 @@ const generateFullBarcode = async (barCode, productName, productCategory) => {
           // Create a PDF and add the barcode image
           const barcodeWidth = 350; // Adjusted barcode width
           const barcodeHeight = 150; // Adjusted barcode height
-           const image = qrcode.imageSync(barCode, {
-             type: "png",
-             size: 40,
-             margin: 0,
-           });
-
+          const image = qrcode.imageSync(barCode, {
+            type: "png",
+            size: 40,
+            margin: 0,
+          });
 
           const doc = new PDFDocument({
             size: "A4",
             layout: "portrait",
           });
 
-          
-const pageWidth = doc.page.width; // Get the page width
-const qrCodeWidth = 100; // Set the width of the QR code image
-const qrCodeHeight = 100; // Set the height of the QR code image
+          const pageWidth = doc.page.width; // Get the page width
+          const qrCodeWidth = 100; // Set the width of the QR code image
+          const qrCodeHeight = 100; // Set the height of the QR code image
 
-// Calculate the x coordinate to center the image
-const x = (pageWidth - qrCodeWidth) / 2;
-const y = 150; // Set the y coordinate for ver
+          // Calculate the x coordinate to center the image
+          const x = (pageWidth - qrCodeWidth) / 2;
+          const y = 150; // Set the y coordinate for ver
 
           doc.pipe(fs.createWriteStream(`${uploadDir}output_${barCode}.pdf`));
 
@@ -112,10 +110,10 @@ const y = 150; // Set the y coordinate for ver
           // Add Product Name in the Center
           doc.moveDown().fontSize(25).text(productName, { align: "center" });
 
-              doc.image(image, x, y, {
-                width: qrCodeWidth,
-                height: qrCodeHeight,
-              });
+          doc.image(image, x, y, {
+            width: qrCodeWidth,
+            height: qrCodeHeight,
+          });
 
           // Append Barcode Image in the Middle
           doc.image(uploadDir + "generated-barcode.png", 120, 300, {

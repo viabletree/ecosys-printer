@@ -40,23 +40,21 @@ app.post("/api/file-upload", upload.single("file"), async (req, res) => {
 app.post("/api/generate-barcodes", async (req, res) => {
   try {
     const body = req?.body;
-  
+
     console.log("body -->>>", body);
 
     const { items, isBarcode } = body;
 
     if (items?.length > 0) {
       for (let item of items) {
-
-          await generatePDF(
-            item.barCode,
-            item.score,
-            item.intCode,
-            item.suppSubName,
-            item.suppLocation,
-            item.blWeight
-          );
-        
+        await generatePDF(
+          item.barCode,
+          item.score,
+          item.intCode,
+          item.suppSubName,
+          item.suppLocation,
+          item.blWeight
+        );
       }
     }
 
@@ -70,30 +68,30 @@ app.post("/api/generate-full-barcodes", async (req, res) => {
   try {
     const body = req?.body;
     const err = [];
-  
+
     console.log("body -->>>", body);
-    for(let i=0; i<body.length; i++){
+    for (let i = 0; i < body.length; i++) {
       const item = body[i];
-      if(!item.legacyCode){
-        err.push('legacyCode');
+      if (!item.legacyCode) {
+        err.push("legacyCode");
       }
-      if(!item.productName){
-        err.push('productName');
+      if (!item.productName) {
+        err.push("productName");
       }
-      if(!item.productCategory){
-        err.push('productCategory');
+      if (!item.productCategory) {
+        err.push("productCategory");
       }
     }
-    if(err.length > 0){
+    if (err.length > 0) {
       // check which field is missing
-      const msg = 'Please provide the required fields';
+      const msg = "Please provide the required fields";
       return res.status(400).json({
         data: [
           {
             message: msg,
             key: "product",
             data: {
-              key: msg.join(', '),
+              key: err.join(", "),
             },
           },
         ],
@@ -103,8 +101,7 @@ app.post("/api/generate-full-barcodes", async (req, res) => {
       });
     }
 
-
-    for(let i=0; i<body.length; i++){ 
+    for (let i = 0; i < body.length; i++) {
       const item = body[i];
       await generateFullBarcode(
         item.legacyCode,
@@ -113,10 +110,10 @@ app.post("/api/generate-full-barcodes", async (req, res) => {
       );
     }
 
-      return res.status(200).json({
-        status: true,
-        message: "Barcode printed successfully uploaded successfully",
-      });
+    return res.status(200).json({
+      status: true,
+      message: "Barcode printed successfully uploaded successfully",
+    });
     // if(item.legacyCode && item.productName && item.productCategory){
 
     //   await generateFullBarcode(
@@ -124,7 +121,7 @@ app.post("/api/generate-full-barcodes", async (req, res) => {
     //     item.productName,
     //     item.productCategory
     //   );
-  
+
     //   return res.status(200).json({
     //     status: true,
     //     message: "Barcode printed successfully uploaded successfully",
@@ -147,10 +144,11 @@ app.post("/api/generate-full-barcodes", async (req, res) => {
     //     statusCode: 400,
     //   });
     // }
-
   } catch (error) {
     console.error("generate barcodes error -->>", error);
     return res.status(500).json({ error: error });
   }
 });
-app.listen(process.env.PORT, () => console.log("RUNNING ON PORT "+process.env.PORT));
+app.listen(process.env.PORT, () =>
+  console.log("RUNNING ON PORT " + process.env.PORT)
+);
