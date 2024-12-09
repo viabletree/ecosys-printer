@@ -5,9 +5,12 @@ import path from "path";
 import ptp from "pdf-to-printer";
 import helper from "./helper.js";
 import dotenv from "dotenv";
+import fs from "fs";
+
 dotenv.config();
 
-const { generatePDF, generateFullBarcode } = helper;
+const { generatePDF, generateFullBarcode, clearDirectory, getFullPrinterList } =
+  helper;
 
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
@@ -100,50 +103,36 @@ app.post("/api/generate-full-barcodes", async (req, res) => {
         statusCode: 400,
       });
     }
-
+    const resultPdf = [];
     for (let i = 0; i < body.length; i++) {
       const item = body[i];
-      await generateFullBarcode(
-        item.legacyCode,
-        item.productName,
-        item.productCategory
+      resultPdf.push(
+        await generateFullBarcode(
+          item.legacyCode,
+          item.productName,
+          item.productCategory
+        )
       );
     }
 
+    for(let i = 0; i < resultPdf.length; i++){
+      console.log('Printing resultPdf[i][1] -->>', resultPdf[i][1]);
+      await getFullPrinterList(resultPdf[i][1]);
+    }
+    console.log('----------- / Pringint complete -----------')
+    for(let i = 0; i < resultPdf.length; i++){
+      console.log('Removing resultPdf[i][1] -->>', resultPdf[i][1]);
+       fs.unlinkSync(resultPdf[i][0]);
+       fs.unlinkSync(resultPdf[i][1]);
+       fs.unlinkSync(resultPdf[i][2]);
+    }
+
+    // await clearDirectory();
+    console.log("resultPdf -->>", resultPdf);
     return res.status(200).json({
       status: true,
       message: "Barcode printed successfully uploaded successfully",
     });
-    // if(item.legacyCode && item.productName && item.productCategory){
-
-    //   await generateFullBarcode(
-    //     item.legacyCode,
-    //     item.productName,
-    //     item.productCategory
-    //   );
-
-    //   return res.status(200).json({
-    //     status: true,
-    //     message: "Barcode printed successfully uploaded successfully",
-    //   });
-    // }else{
-    //   // check which field is missing
-    //   const msg = 'Please provide the required fields';
-    //   return res.status(400).json({
-    //     data: [
-    //       {
-    //         message: msg,
-    //         key: "product",
-    //         data: {
-    //           key: msg,
-    //         },
-    //       },
-    //     ],
-    //     message: msg,
-    //     status: false,
-    //     statusCode: 400,
-    //   });
-    // }
   } catch (error) {
     console.error("generate barcodes error -->>", error);
     return res.status(500).json({ error: error });

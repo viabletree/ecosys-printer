@@ -38,7 +38,7 @@ const getPrinterList = async (barCode) => {
   }
 };
 
-const getFullPrinterList = async (barCode) => {
+const getFullPrinterList = async (filePath) => {
   sleep(10000);
 
   const options = {
@@ -48,7 +48,7 @@ const getFullPrinterList = async (barCode) => {
   };
 
   try {
-    return print(`${uploadDir}rotated_output_${barCode}.pdf`, options).then(
+    return print(filePath, options).then(
       () => {
         console.log("doc printed");
       }
@@ -60,122 +60,125 @@ const getFullPrinterList = async (barCode) => {
 
 // 2.4 W
 // 3.5 H
-
+async function createBarcode(barCode) {
+  return new Promise(function(resolve, reject){
+bwipjs.toBuffer(
+  {
+    bcid: "code128",
+    text: barCode,
+    scale: 3,
+    height: 10,
+    includetext: true,
+  },
+  async function (err, png) {
+    if (err) {
+      console.error(err);
+      reject(err);
+    } else {
+      resolve(png);
+    }
+  }
+)
+  })
+}
 const generateFullBarcode = async (barCode, productName, productCategory) => {
-  return new Promise((resolve, reject) => {
-    bwipjs.toBuffer(
-      {
-        bcid: "code128",
-        text: barCode,
-        scale: 3,
-        height: 30,
-        includetext: true,
-      },
-      async function (err, png) {
-        if (err) {
-          console.error(err);
-          reject(err);
-        } else {
-          // Write the PNG image to disk
-          fs.writeFileSync(uploadDir + "generated-barcode.png", png);
+  return new Promise(async (resolve, reject) => {
+  try {
+      
+     const barcodeWidth = 350; // Adjusted barcode width
+     const barcodeHeight = 150; // Adjusted barcode height
+     const slugProductName = slugify(productName);
+     const slugBarcode = slugify(barCode);
+    const png = await createBarcode(barCode);
+    const outputPdf = `${uploadDir}output_${slugBarcode}_${slugProductName}_${Date.now()}.pdf`;
+    const rotatedPdf = `${uploadDir}rotated_output_${slugBarcode}_${slugProductName}_${Date.now()}.pdf`;
+    const barcodePath = `${uploadDir}barcode_${slugBarcode}_${slugProductName}_${Date.now()}.png`;
+    // Write the PNG image to disk
+    fs.writeFileSync(barcodePath, png);
 
-          // Create a PDF and add the barcode image
-          const barcodeWidth = 350; // Adjusted barcode width
-          const barcodeHeight = 150; // Adjusted barcode height
-          const slugProductName = slugify(productName);
-          const slugBarcode = slugify(barCode);
-          const image = qrcode.imageSync(barCode, {
-            type: "png",
-            size: 40,
-            margin: 0,
-          });
+    // Create a PDF and add the barcode image
+   
+    const image = qrcode.imageSync(barCode, {
+      type: "png",
+      size: 40,
+      margin: 0,
+    });
 
-          const doc = new PDFDocument({
-            size: "A4",
-            layout: "portrait",
-          });
+    const doc = new PDFDocument({
+      size: "A4",
+      layout: "portrait",
+    });
 
-          const pageWidth = doc.page.width; // Get the page width
-          const qrCodeWidth = 100; // Set the width of the QR code image
-          const qrCodeHeight = 100; // Set the height of the QR code image
+    const pageWidth = doc.page.width; // Get the page width
+    const qrCodeWidth = 100; // Set the width of the QR code image
+    const qrCodeHeight = 100; // Set the height of the QR code image
 
-          // Calculate the x coordinate to center the image
-          const x = (pageWidth - qrCodeWidth) / 2;
-          const y = 150; // Set the y coordinate for ver
+    // Calculate the x coordinate to center the image
+    const x = (pageWidth - qrCodeWidth) / 2;
+    const y = 150; // Set the y coordinate for ver
 
-          doc.pipe(
-            fs.createWriteStream(
-              `${uploadDir}output_${slugBarcode}_${slugProductName}.pdf`
-            )
-          );
+    const writeStream = fs.createWriteStream(
+      `${outputPdf}`
+    )
+    doc.pipe(writeStream);
 
-          // Add Barcode Number at the Top
-          doc
-            .font("Helvetica")
-            .fontSize(12)
-            .text(barCode, { align: "center", lineGap: 10 });
+    // Add Barcode Number at the Top
+    doc
+      .font("Helvetica")
+      .fontSize(12)
+      .text(barCode, { align: "center", lineGap: 10 });
 
-          // Add Product Name in the Center
-          doc.moveDown().fontSize(25).text(productName, { align: "center" });
+    // Add Product Name in the Center
+    doc.moveDown().fontSize(25).text(productName, { align: "center" });
 
-          doc.image(image, x, y, {
-            width: qrCodeWidth,
-            height: qrCodeHeight,
-          });
+    doc.image(image, x, y, {
+      width: qrCodeWidth,
+      height: qrCodeHeight,
+    });
 
-          // Append Barcode Image in the Middle
-          doc.image(uploadDir + "generated-barcode.png", 120, 300, {
-            width: barcodeWidth,
-            height: barcodeHeight,
-            align: "center",
-          });
+    // Append Barcode Image in the Middle
+    doc.image(barcodePath, 120, 300, {
+      width: barcodeWidth,
+      height: barcodeHeight,
+      align: "center",
+    });
+    // Add Product Category at the Bottom
+    doc.moveDown(12).fontSize(20).text(productCategory, { align: "center" });
 
-          // Add Barcode Number Below the Barcode
-          // doc
-          //   .font("Helvetica-Bold")
-          //   .moveDown(4)
-          //   .fontSize(15)
-          //   .text(`* ${barCode} *`, { align: "center", lineGap: 10 });
+    // Add Smaller Barcode Below the Product Category
+    doc.image(barcodePath, 250, 520, {
+      width: 100,
+      height: 30,
+      align: "center",
+    });
 
-          // Add Product Category at the Bottom
-          doc
-            .moveDown(12)
-            .fontSize(20)
-            .text(productCategory, { align: "center" });
+    // Finalize the PDF
+    doc.end();
 
-          // Add Smaller Barcode Below the Product Category
-          doc.image(uploadDir + "generated-barcode.png", 250, 520, {
-            width: 100,
-            height: 30,
-            align: "center",
-          });
+     writeStream.on("finish", async () => {
+       console.log("PDF created successfully!");
+        await rotatePdf(
+        `${outputPdf}`,
+        `${rotatedPdf}`
+      );
+       resolve([
+         `${outputPdf}`,
+         `${rotatedPdf}`,
+         `${barcodePath}`
+       ]); // Resolve the promise once the PDF is written
+     });
 
-          // Finalize the PDF
-          doc.end();
+     writeStream.on("error", (err) => {
+      console.log("Error creating PDF", err);
+       reject(err);
+     });
+  } catch (error) {
+    console.error("generate barcodes error -->>", error);
+    reject(error);
+  }  
+});
 
-          doc.on("end", async () => {
-            // Rotate the PDF and print
-            setTimeout(async () => {
-              console.log("Waiting for 10 seconds");
-              await rotatePdf(
-                `${uploadDir}output_${slugBarcode}_${slugProductName}.pdf`,
-                `${uploadDir}rotated_output_${slugBarcode}_${slugProductName}.pdf`
-              );
-
-              setTimeout(async () => {
-                console.log("Waiting for 10 seconds");
-                await getFullPrinterList(barCode);
-                // remove all files inside uploads directory
-                await clearDirectory(uploadDir);
-              }, 1000);
-            }, 1000);
-            resolve();
-          });
-        }
-        console.log("PDF with generated barcode created.");
-      }
-    );
-  });
+  
 };
 
 const generatePDF = async (
@@ -297,7 +300,8 @@ const generatePDF = async (
  * Deletes all files in the specified directory asynchronously using `await`.
  * @param {string} directory - The path to the directory.
  */
-async function clearDirectory(directory) {
+async function clearDirectory() {
+  const directory = uploadDir;
   if (!fs.existsSync(directory)) {
     console.error(`Directory does not exist: ${directory}`);
     return;
@@ -395,7 +399,9 @@ const generatePDFQrCode = async (
 
 export default {
   generatePDF,
+  clearDirectory,
   getPrinterList,
+  getFullPrinterList,
   generatePDFQrCode,
   generateFullBarcode,
 };

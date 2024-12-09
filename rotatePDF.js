@@ -24,7 +24,7 @@ async function rotatePdf(inputPath, outputPath) {
 
     console.log("Rotated PDF saved to", outputPath);
   } catch (error) {
-    console.error("error");
+    console.error('Error', error);
   }
 }
 
