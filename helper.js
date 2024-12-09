@@ -6,6 +6,8 @@ import pkg from "pdf-to-printer";
 import path from "path";
 import qrcode from "qr-image";
 import dotenv from "dotenv";
+import slugify from "slugify";
+
 dotenv.config();
 
 const { print, getPrinters } = pkg;
@@ -80,6 +82,8 @@ const generateFullBarcode = async (barCode, productName, productCategory) => {
           // Create a PDF and add the barcode image
           const barcodeWidth = 350; // Adjusted barcode width
           const barcodeHeight = 150; // Adjusted barcode height
+          const slugProductName = slugify(productName);
+          const slugBarcode = slugify(barCode);
           const image = qrcode.imageSync(barCode, {
             type: "png",
             size: 40,
@@ -99,7 +103,11 @@ const generateFullBarcode = async (barCode, productName, productCategory) => {
           const x = (pageWidth - qrCodeWidth) / 2;
           const y = 150; // Set the y coordinate for ver
 
-          doc.pipe(fs.createWriteStream(`${uploadDir}output_${barCode}.pdf`));
+          doc.pipe(
+            fs.createWriteStream(
+              `${uploadDir}output_${slugBarcode}_${slugProductName}.pdf`
+            )
+          );
 
           // Add Barcode Number at the Top
           doc
@@ -150,8 +158,8 @@ const generateFullBarcode = async (barCode, productName, productCategory) => {
             setTimeout(async () => {
               console.log("Waiting for 10 seconds");
               await rotatePdf(
-                `${uploadDir}output_${barCode}.pdf`,
-                `${uploadDir}rotated_output_${barCode}.pdf`
+                `${uploadDir}output_${slugBarcode}_${slugProductName}.pdf`,
+                `${uploadDir}rotated_output_${slugBarcode}_${slugProductName}.pdf`
               );
 
               setTimeout(async () => {
