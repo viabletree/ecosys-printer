@@ -12,7 +12,7 @@ dotenv.config();
 
 const { print, getPrinters } = pkg;
 
-const uploadDir = "uploads/";
+const uploadDir = process.env.UPLOAD_DIR;
 
 function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));

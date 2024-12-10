@@ -6,6 +6,7 @@ import ptp from "pdf-to-printer";
 import helper from "./helper.js";
 import dotenv from "dotenv";
 import fs from "fs";
+import { monitorPrintJob } from "./cleanDirectory.js";
 
 dotenv.config();
 
@@ -120,13 +121,17 @@ app.post("/api/generate-full-barcodes", async (req, res) => {
       await getFullPrinterList(resultPdf[i][1]);
     }
     console.log('----------- / Pringint complete -----------')
-    for(let i = 0; i < resultPdf.length; i++){
-      console.log('Removing resultPdf[i][1] -->>', resultPdf[i][1]);
-       fs.unlinkSync(resultPdf[i][0]);
-       fs.unlinkSync(resultPdf[i][1]);
-       fs.unlinkSync(resultPdf[i][2]);
-    }
+    
 
+    monitorPrintJob(function(){
+      console.log('Ready to delete all');
+      for (let i = 0; i < resultPdf.length; i++) {
+        console.log("Removing resultPdf[i][1] -->>", resultPdf[i][1]);
+        fs.unlinkSync(resultPdf[i][0]);
+        fs.unlinkSync(resultPdf[i][1]);
+        fs.unlinkSync(resultPdf[i][2]);
+      }
+    } );
     // await clearDirectory();
     console.log("resultPdf -->>", resultPdf);
     return res.status(200).json({
