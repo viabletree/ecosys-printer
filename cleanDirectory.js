@@ -16,7 +16,7 @@ function checkPrintQueue(callback) {
 const isWin = process.platform === "win32";
 let cmd = "lpstat -o"; // Linux/Mac
 if(isWin){
-    cmd = `powershell Get-PrintJob -PrinterName "${process.env.FULL_PRINTER_NAME}"`;
+    cmd = `powershell Get-PrintJob -PrinterName "'${process.env.FULL_PRINTER_NAME}'"`;
 }
      exec(cmd, (err, stdout, stderr) => {
        if (err || stderr) {

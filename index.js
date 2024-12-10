@@ -127,11 +127,19 @@ app.post("/api/generate-full-barcodes", async (req, res) => {
       console.log('Ready to delete all');
       for (let i = 0; i < resultPdf.length; i++) {
         console.log("Removing resultPdf[i][1] -->>", resultPdf[i][1]);
-        fs.unlinkSync(resultPdf[i][0]);
-        fs.unlinkSync(resultPdf[i][1]);
-        fs.unlinkSync(resultPdf[i][2]);
+        if (fs.existsSync(resultPdf[i][0])) {
+          fs.unlinkSync(resultPdf[i][0]);
+        }
+        if (fs.existsSync(resultPdf[i][1])) {
+          fs.unlinkSync(resultPdf[i][1]);
+        }
+        if (fs.existsSync(resultPdf[i][2])) {
+          fs.unlinkSync(resultPdf[i][2]);
+        }
       }
     } );
+
+  
     // await clearDirectory();
     console.log("resultPdf -->>", resultPdf);
     return res.status(200).json({
