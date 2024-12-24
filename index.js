@@ -76,8 +76,8 @@ app.post("/api/generate-full-barcodes", async (req, res) => {
     console.log("body -->>>", body);
     for (let i = 0; i < body.length; i++) {
       const item = body[i];
-      if (!item.legacyCode) {
-        err.push("legacyCode");
+      if (!item.barcode) {
+        err.push("barcode");
       }
       if (!item.productName) {
         err.push("productName");
@@ -109,22 +109,21 @@ app.post("/api/generate-full-barcodes", async (req, res) => {
       const item = body[i];
       resultPdf.push(
         await generateFullBarcode(
-          item.legacyCode,
+          item.barcode,
           item.productName,
           item.productCategory
         )
       );
     }
 
-    for(let i = 0; i < resultPdf.length; i++){
-      console.log('Printing resultPdf[i][1] -->>', resultPdf[i][1]);
+    for (let i = 0; i < resultPdf.length; i++) {
+      console.log("Printing resultPdf[i][1] -->>", resultPdf[i][1]);
       await getFullPrinterList(resultPdf[i][1]);
     }
-    console.log('----------- / Pringint complete -----------')
-    
+    console.log("----------- / Pringint complete -----------");
 
-    monitorPrintJob(function(){
-      console.log('Ready to delete all');
+    monitorPrintJob(function () {
+      console.log("Ready to delete all");
       for (let i = 0; i < resultPdf.length; i++) {
         console.log("Removing resultPdf[i][1] -->>", resultPdf[i][1]);
         if (fs.existsSync(resultPdf[i][0])) {
@@ -137,9 +136,8 @@ app.post("/api/generate-full-barcodes", async (req, res) => {
           fs.unlinkSync(resultPdf[i][2]);
         }
       }
-    } );
+    });
 
-  
     // await clearDirectory();
     console.log("resultPdf -->>", resultPdf);
     return res.status(200).json({
