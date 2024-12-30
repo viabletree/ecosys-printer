@@ -10,8 +10,13 @@ import { monitorPrintJob } from "./cleanDirectory.js";
 
 dotenv.config();
 
-const { generatePDF, generateFullBarcode, clearDirectory, getFullPrinterList } =
-  helper;
+const {
+  generatePDF,
+  generateFinishedGoodsSticker,
+  generateFullBarcode,
+  clearDirectory,
+  getFullPrinterList,
+} = helper;
 
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
@@ -68,6 +73,43 @@ app.post("/api/generate-barcodes", async (req, res) => {
     return res.status(500).json({ error: error });
   }
 });
+
+app.post("/api/generate-finished-goods-sticker", async (req, res) => {
+  try {
+    const { stickerData, packingType } = req?.body;
+
+    console.log("body -->>>", stickerData);
+        await generateFinishedGoodsSticker(stickerData);
+
+    return res.status(200).json({ success: "barcodes generated successfully" });
+  } catch (error) {
+    console.error("generate barcodes error -->>", error);
+    return res.status(500).json({ error: error });
+  }
+});
+
+app.post("/api/generate-finished-goods-brand", async (req, res) => {
+  try {
+    const item = req?.body;
+
+    console.log("body -->>>", item);
+    await generatePDF(
+      item.barCode,
+      item.score,
+      item.intCode,
+      item.suppSubName,
+      item.suppLocation,
+      item.blWeight
+    );
+
+    return res.status(200).json({ success: "barcodes generated successfully" });
+  } catch (error) {
+    console.error("generate barcodes error -->>", error);
+    return res.status(500).json({ error: error });
+  }
+});
+
+
 app.post("/api/generate-full-barcodes", async (req, res) => {
   try {
     const body = req?.body;
@@ -107,37 +149,31 @@ app.post("/api/generate-full-barcodes", async (req, res) => {
     const resultPdf = [];
     for (let i = 0; i < body.length; i++) {
       const item = body[i];
-      resultPdf.push(
-        await generateFullBarcode(
-          item.legacyCode,
-          item.productName,
-          item.productCategory
-        )
-      );
+      resultPdf.push(await generateFullBarcode('a','b'));
     }
 
-    for(let i = 0; i < resultPdf.length; i++){
-      console.log('Printing resultPdf[i][1] -->>', resultPdf[i][1]);
-      await getFullPrinterList(resultPdf[i][1]);
-    }
-    console.log('----------- / Pringint complete -----------')
+    // for(let i = 0; i < resultPdf.length; i++){
+    //   console.log('Printing resultPdf[i][1] -->>', resultPdf[i][1]);
+    //   await getFullPrinterList(resultPdf[i][1]);
+    // }
+    // console.log('----------- / Pringint complete -----------')
     
 
-    monitorPrintJob(function(){
-      console.log('Ready to delete all');
-      for (let i = 0; i < resultPdf.length; i++) {
-        console.log("Removing resultPdf[i][1] -->>", resultPdf[i][1]);
-        if (fs.existsSync(resultPdf[i][0])) {
-          fs.unlinkSync(resultPdf[i][0]);
-        }
-        if (fs.existsSync(resultPdf[i][1])) {
-          fs.unlinkSync(resultPdf[i][1]);
-        }
-        if (fs.existsSync(resultPdf[i][2])) {
-          fs.unlinkSync(resultPdf[i][2]);
-        }
-      }
-    } );
+    // monitorPrintJob(function(){
+    //   console.log('Ready to delete all');
+    //   for (let i = 0; i < resultPdf.length; i++) {
+    //     console.log("Removing resultPdf[i][1] -->>", resultPdf[i][1]);
+    //     if (fs.existsSync(resultPdf[i][0])) {
+    //       fs.unlinkSync(resultPdf[i][0]);
+    //     }
+    //     if (fs.existsSync(resultPdf[i][1])) {
+    //       fs.unlinkSync(resultPdf[i][1]);
+    //     }
+    //     if (fs.existsSync(resultPdf[i][2])) {
+    //       fs.unlinkSync(resultPdf[i][2]);
+    //     }
+    //   }
+    // } );
 
   
     // await clearDirectory();

@@ -7,6 +7,7 @@ import path from "path";
 import qrcode from "qr-image";
 import dotenv from "dotenv";
 import slugify from "slugify";
+import { fetchProduct } from "./autoGenerate.js";
 
 dotenv.config();
 
@@ -48,11 +49,9 @@ const getFullPrinterList = async (filePath) => {
   };
 
   try {
-    return print(filePath, options).then(
-      () => {
-        console.log("doc printed");
-      }
-    );
+    return print(filePath, options).then(() => {
+      console.log("doc printed");
+    });
   } catch (error) {
     console.log(error);
   }
@@ -61,124 +60,33 @@ const getFullPrinterList = async (filePath) => {
 // 2.4 W
 // 3.5 H
 async function createBarcode(barCode) {
-  return new Promise(function(resolve, reject){
-bwipjs.toBuffer(
-  {
-    bcid: "code128",
-    text: barCode,
-    scale: 3,
-    height: 10,
-    includetext: true,
-  },
-  async function (err, png) {
-    if (err) {
-      console.error(err);
-      reject(err);
-    } else {
-      resolve(png);
-    }
-  }
-)
-  })
+  return new Promise(function (resolve, reject) {
+    bwipjs.toBuffer(
+      {
+        bcid: "code128",
+        text: barCode,
+        scale: 3,
+        height: 10,
+        includetext: true,
+      },
+      async function (err, png) {
+        if (err) {
+          console.error(err);
+          reject(err);
+        } else {
+          resolve(png);
+        }
+      }
+    );
+  });
 }
-const generateFullBarcode = async (barCode, productName, productCategory) => {
-  return new Promise(async (resolve, reject) => {
+const generateFullBarcode = async (outputPdf, data) => {
   try {
-      
-     const barcodeWidth = 350; // Adjusted barcode width
-     const barcodeHeight = 150; // Adjusted barcode height
-     const slugProductName = slugify(productName);
-     const slugBarcode = slugify(barCode);
-    const png = await createBarcode(barCode);
-    const outputPdf = `${uploadDir}output_${slugBarcode}_${slugProductName}_${Date.now()}.pdf`;
-    const rotatedPdf = `${uploadDir}rotated_output_${slugBarcode}_${slugProductName}_${Date.now()}.pdf`;
-    const barcodePath = `${uploadDir}barcode_${slugBarcode}_${slugProductName}_${Date.now()}.png`;
-    // Write the PNG image to disk
-    fs.writeFileSync(barcodePath, png);
-
-    // Create a PDF and add the barcode image
-   
-    const image = qrcode.imageSync(barCode, {
-      type: "png",
-      size: 40,
-      margin: 0,
-    });
-
-    const doc = new PDFDocument({
-      size: "A4",
-      layout: "portrait",
-    });
-
-    const pageWidth = doc.page.width; // Get the page width
-    const qrCodeWidth = 100; // Set the width of the QR code image
-    const qrCodeHeight = 100; // Set the height of the QR code image
-
-    // Calculate the x coordinate to center the image
-    const x = (pageWidth - qrCodeWidth) / 2;
-    const y = 150; // Set the y coordinate for ver
-
-    const writeStream = fs.createWriteStream(
-      `${outputPdf}`
-    )
-    doc.pipe(writeStream);
-
-    // Add Barcode Number at the Top
-    doc
-      .font("Helvetica")
-      .fontSize(12)
-      .text(barCode, { align: "center", lineGap: 10 });
-
-    // Add Product Name in the Center
-    doc.moveDown().fontSize(25).text(productName, { align: "center" });
-
-    doc.image(image, x, y, {
-      width: qrCodeWidth,
-      height: qrCodeHeight,
-    });
-
-    // Append Barcode Image in the Middle
-    doc.image(barcodePath, 120, 300, {
-      width: barcodeWidth,
-      height: barcodeHeight,
-      align: "center",
-    });
-    // Add Product Category at the Bottom
-    doc.moveDown(12).fontSize(20).text(productCategory, { align: "center" });
-
-    // Add Smaller Barcode Below the Product Category
-    doc.image(barcodePath, 250, 520, {
-      width: 100,
-      height: 30,
-      align: "center",
-    });
-
-    // Finalize the PDF
-    doc.end();
-
-     writeStream.on("finish", async () => {
-       console.log("PDF created successfully!");
-        await rotatePdf(
-        `${outputPdf}`,
-        `${rotatedPdf}`
-      );
-       resolve([
-         `${outputPdf}`,
-         `${rotatedPdf}`,
-         `${barcodePath}`
-       ]); // Resolve the promise once the PDF is written
-     });
-
-     writeStream.on("error", (err) => {
-      console.log("Error creating PDF", err);
-       reject(err);
-     });
+    await fetchProduct(`product.docx`, data);
   } catch (error) {
     console.error("generate barcodes error -->>", error);
     reject(error);
-  }  
-});
-
-  
+  }
 };
 
 const generatePDF = async (
@@ -283,6 +191,129 @@ const generatePDF = async (
               setTimeout(async () => {
                 console.log("Waiting for 10 seconds");
                 await getPrinterList(barCode);
+                // remove all files inside uploads directory
+                await clearDirectory(uploadDir);
+              }, 1000);
+            }, 1000);
+            resolve();
+          });
+        }
+        console.log("PDF with generated barcode created.");
+      }
+    );
+  });
+};
+
+const generateFinishedGoodsSticker = async (item) => {
+  return new Promise((resolve, reject) => {
+    const { barcode, alias, suggestedUnit, productWeight, customerCode } = item;
+    bwipjs.toBuffer(
+      {
+        bcid: "code128",
+        text: barcode,
+        scale: 3,
+        height: 10,
+        includetext: true,
+      },
+      async function (err, png) {
+        if (err) {
+          console.error(err);
+          reject(err);
+        } else {
+          const barcodeWidth = 100;
+          const barcodeHeight = 40;
+          const qrCodeWidth = 40;
+          const qrCodeHeight = 40;
+          // Write the PNG image to disk
+          fs.writeFileSync(uploadDir + "generated-barcode.png", png);
+          const image = qrcode.imageSync(barcode, {
+            type: "png",
+            size: 40,
+            margin: 0,
+          });
+
+          // Create a PDF and add the barcode image
+          const doc = new PDFDocument({
+            size: [270, 180],
+            layout: "portrait",
+          });
+          doc.pipe(fs.createWriteStream(`${uploadDir}output_${barcode}.pdf`));
+          //  Append Barcode
+
+          doc.image(uploadDir + "generated-barcode.png", 70, 30, {
+            width: barcodeWidth,
+            height: barcodeHeight,
+          });
+          // Append QR Code
+          doc.image(image, 25, 30, {
+            width: qrCodeWidth,
+            height: qrCodeHeight,
+          });
+          // doc.fontSize(30).text(alias, 175, 40, { height: 70, width: 50 });
+
+          doc
+            .fontSize(9)
+            .text("Wt : " + productWeight, 25, 80, { height: 20, width: 50 });
+          doc.fontSize(9).text(customerCode, 60, 80, { height: 20, width: 50 });
+
+          doc.fontSize(9).text(alias, 90, 80, { height: 20, width: 50 });
+          // doc
+          //   .fontSize(9)
+          //   .text(suggestedUnit, 110, 50, { height: 20, width: 50 });
+
+          // Append Barcode
+          doc.image(uploadDir + "generated-barcode.png", 70, 105, {
+            width: barcodeWidth,
+            height: barcodeHeight,
+          });
+          // Append QR Code
+          doc.image(image, 25, 105, {
+            width: qrCodeWidth,
+            height: qrCodeHeight,
+          });
+          // doc.fontSize(30).text(alias, 175, 125, { height: 70, width: 50 });
+
+          doc
+            .fontSize(9)
+            .text("Wt : " + productWeight, 25, 150, { height: 20, width: 50 });
+          doc
+            .fontSize(9)
+            .text(customerCode, 60, 150, { height: 20, width: 50 });
+
+          doc.fontSize(9).text(alias, 90, 150, { height: 20, width: 50 });
+          // doc
+          //   .fontSize(9)
+          //   .text(suggestedUnit, 110, 150, { height: 20, width: 50 });
+
+          doc
+            .fontSize(9)
+            .save() // Save the current state
+            .rotate(90, { origin: [10, 10] }) // Rotate around the top-left corner (0, 0)
+            .text(customerCode, 40, 0, { width: 50 }) // Place the text near the top-left
+            .restore(); // Restore the state after the transformation
+
+          doc
+            .fontSize(9)
+            .save() // Save the current state
+            .rotate(90, { origin: [10, 10] }) // Rotate around the top-left corner (0, 0)
+            .text(customerCode, 120, 0, { width: 50 }) // Place the text near the top-left
+            .restore(); // Restore the state after the transformation
+
+          // Finalize the PDF
+          doc.end();
+
+          doc.on("end", async () => {
+            // Rotate the PDF and print
+            setTimeout(async () => {
+              console.log("Waiting for 10 seconds");
+              await rotatePdf(
+                `${uploadDir}output_${barcode}.pdf`,
+                `${uploadDir}rotated_output_${barcode}.pdf`
+              );
+
+              setTimeout(async () => {
+                console.log("Waiting for 10 seconds");
+                await getPrinterList(barcode);
                 // remove all files inside uploads directory
                 await clearDirectory(uploadDir);
               }, 1000);
@@ -402,6 +433,7 @@ export default {
   clearDirectory,
   getPrinterList,
   getFullPrinterList,
+  generateFinishedGoodsSticker,
   generatePDFQrCode,
   generateFullBarcode,
 };
