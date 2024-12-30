@@ -94,7 +94,7 @@ app.post("/api/generate-finished-goods-brand", async (req, res) => {
     const item = req?.body;
 
     console.log("body -->>>", item);
-    const copies = 1;
+    let copies = 1;
     if(item.numberOfCopies){
       copies = item.numberOfCopies; 
     }
