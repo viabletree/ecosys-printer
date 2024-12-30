@@ -47,97 +47,9 @@ async function convertDocxToPdfLibreOffice(docxPath, outputDir) {
 async function fetchProduct(fileName, id) {
   // console.log({ response: data });
   try {
-    //  const url = `${process.env.BASE_URL}${process.env.ENDPOINT}${id}`;
-    //  console.log(url);
-    //  const response = await axios.get(url);
-    const data = JSON.parse(`{
-            "id": "cm3it5z3y0058ptshnvsua6mv",
-            "name": "Laptops",
-            "shortName": "Tarik Velez",
-            "code": "3",
-            "legacyCode": "Dolorem dolor in adi",
-            "odooCode": "Facere sed sequi sus",
-            "isActive": true,
-            "isPurchaseable": false,
-            "isBy": false,
-            "isConsumable": true,
-            "pausePurchase": true,
-            "pauseProduction": false,
-            "pauseSell": true,
-            "baserateValue": 11,
-            "unitLBS": 12,
-            "productDefaultPlanning": [],
-            "templateProduct": [],
-            "currency": {
-                "id": "cm3inmlkc00my3ud75dhcz2ng",
-                "name": "Australian Dollar",
-                "shortName": "AUD",
-                "symbol": "AU$"
-            },
-            "productType": {
-                "name": "Licensed Granite Shirt",
-                "shortName": "spero",
-                "id": "cm3inmlho00li3ud7eh47p9cj"
-            },
-            "productCategory": {
-                "name": "Electronic Soft Shirt",
-                "shortName": "tener",
-                "id": "cm3inmlhx00lm3ud7jmiq8feb"
-            },
-            "productSeason": {
-                "name": "Incredible Concrete Computer",
-                "shortName": "debitis",
-                "id": "cm3inmlih00lw3ud7ot521ix6"
-            },
-            "productGrade": {
-                "name": "Bespoke Concrete Towels",
-                "shortName": "cumque",
-                "id": "cm3inmlip00m03ud7thwscb2v"
-            },
-            "unitOfMeasure": {
-                "name": "Kilogram",
-                "shortName": "kg",
-                "id": "cm3ioa6ip003wk6t1zdotatm1"
-            },
-            "productHSCode": {
-                "name": "Used Clothes Mix Rags",
-                "shortName": "used-rags",
-                "code": "1001",
-                "id": "cm3ioawga003yk6t12zj0nuz5",
-                "assessedRateHSCodeCurrency": {
-                    "id": "cm3inmlkc00ms3ud7ysqeawlj",
-                    "name": "US Dollar",
-                    "shortName": "USD",
-                    "symbol": "$"
-                },
-                "assessedRateHSCodeUOM": {
-                    "id": "cm3ioa6ip003wk6t1zdotatm1",
-                    "name": "Kilogram",
-                    "shortName": "kg"
-                },
-                "assessedRateValue": 10
-            },
-            "business": {
-                "name": "Used Clothing",
-                "shortName": "UC",
-                "id": "cm3inmkob001a3ud7ghzgkgp1"
-            },
-            "slug": "laptops",
-            "alias": [
-                "laptops"
-            ],
-            "tags": [
-                "aaa"
-            ],
-            "families": [],
-            "groups": [
-                {
-                    "id": "cm3inmlid00lu3ud7qmw77d1l",
-                    "name": "Intelligent Wooden Chips",
-                    "shortName": "alienus"
-                }
-            ]
-        }`);
+     const url = `${process.env.BASE_URL}${process.env.ENDPOINT}${id}`;
+     console.log(url);
+     const response = await axios.get(url);
     if (!data) {
       return "Data not found";
     }
@@ -194,6 +106,106 @@ async function fetchProduct(fileName, id) {
     console.log({ error });
   }
 }
+
+
+async function finishedGoodsBrandPrint(fileUrl, data) {
+  try {
+    // Validate fileUrl
+    if (!fileUrl.endsWith(".docx") && !fileUrl.endsWith(".doc")) {
+      return "File must be a .docx or .doc file";
+    }
+
+
+    if (!data) {
+      return "Data not found";
+    }
+
+    // Download the file from the provided URL
+    const response = await axios.get(fileUrl, { responseType: "arraybuffer" });
+    if (response.status !== 200) {
+      return "Failed to download the file";
+    }
+
+    const downloadedFileName = `${crypto.randomUUID()}-${fileUrl
+      .split("/")
+      .pop()}`;
+    const filePath = `${uploadDir}/${sanitizeFileName(downloadedFileName)}`;
+    fs.writeFileSync(filePath, response.data);
+    console.log(`File downloaded to ${filePath}`);
+
+    // Read the downloaded file
+    const template = fs.readFileSync(filePath);
+
+    // Process variables and create updated data
+    const updatedData = await processDocxVariables(filePath, data);
+
+    // Generate the report
+    const buffer = await createReport({
+      template,
+      cmdDelimiter: ["{{", "}}"],
+      data: updatedData,
+      additionalJsContext: {
+        barcode: async (data) => {
+          return {
+            width: 6,
+            height: 6,
+            data: await generateBarcode(data),
+            extension: ".gif",
+          };
+        },
+        qrcode: async (data) => {
+          return {
+            width: 6,
+            height: 6,
+            data: await generateQRCode(data),
+            extension: ".gif",
+          };
+        },
+      },
+      failFast: false,
+    });
+
+    // Write the generated file to disk
+    const newFileName = sanitizeFileName(
+      `${crypto.randomUUID()}-${downloadedFileName}`
+    );
+    const newPdfName = `${newFileName}.pdf`;
+    const outputPath = `${uploadDir}/${newFileName}`;
+    console.log("Creating docx file from template and variables");
+    fs.writeFileSync(outputPath, buffer);
+
+    // Convert to PDF
+    console.log("Converting docx to pdf");
+    await convertDocxToPdfLibreOffice(outputPath, `${uploadDir}`);
+    console.log("Removing docx file from server");
+    // fs.unlinkSync(outputPath);
+
+    return `${uploadDir}/${newPdfName}`;
+  } catch (error) {
+    console.error({ error });
+    throw new Error("An error occurred while processing the document");
+  }
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 function getRandomKeys(inputObject, count = 2) {
   const keys = Object.keys(inputObject);
   const selectedKeys = [];
@@ -304,4 +316,4 @@ async function generateQRCode(code) {
   return pngBuffer.toString("base64"); // Embed as base64
   // return `data:image/png;base64,${pngBuffer.toString("base64")}`; // Embed as base64
 }
-export { fetchProduct };
+export { fetchProduct, finishedGoodsBrandPrint };

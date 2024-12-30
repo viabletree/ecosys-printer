@@ -7,6 +7,7 @@ import helper from "./helper.js";
 import dotenv from "dotenv";
 import fs from "fs";
 import { monitorPrintJob } from "./cleanDirectory.js";
+import { finishedGoodsBrandPrint } from "./autoGenerate.js";
 
 dotenv.config();
 
@@ -93,14 +94,12 @@ app.post("/api/generate-finished-goods-brand", async (req, res) => {
     const item = req?.body;
 
     console.log("body -->>>", item);
-    await generatePDF(
-      item.barCode,
-      item.score,
-      item.intCode,
-      item.suppSubName,
-      item.suppLocation,
-      item.blWeight
+    const pdf = await finishedGoodsBrandPrint(
+     item.templatePath,
+     item.templateData
     );
+
+    await getFullPrinterList(pdf);
 
     return res.status(200).json({ success: "barcodes generated successfully" });
   } catch (error) {
