@@ -94,12 +94,21 @@ app.post("/api/generate-finished-goods-brand", async (req, res) => {
     const item = req?.body;
 
     console.log("body -->>>", item);
-    const pdf = await finishedGoodsBrandPrint(
-     item.templatePath,
-     item.templateData
-    );
-
-    await getFullPrinterList(pdf);
+    const copies = 1;
+    if(item.numberOfCopies){
+      copies = item.numberOfCopies; 
+    }
+      for(let i = 0; i < copies; i++){
+        const pdf = await finishedGoodsBrandPrint(
+          item.templatePath,
+          item.templateData
+        );
+   
+       await getFullPrinterList(pdf);
+      }
+  
+    
+   
 
     return res.status(200).json({ success: "barcodes generated successfully" });
   } catch (error) {
