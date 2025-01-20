@@ -16,6 +16,7 @@ const {
   generateFinishedGoodsSticker,
   generateFullBarcode,
   clearDirectory,
+  getPrinterList,
   getFullPrinterList,
 } = helper;
 
@@ -45,6 +46,15 @@ app.post("/api/file-upload", upload.single("file"), async (req, res) => {
   } catch (error) {
     res.status(500).json({ error: error });
   }
+});
+
+app.post("/api/generate-barcodes2", async (req, res) => {
+  try {
+    await getPrinterList('1736410579123-120971357');
+} catch (error) {
+  console.error("generate barcodes error -->>", error);
+  return res.status(500).json({ error: error });
+}
 });
 
 app.post("/api/generate-barcodes", async (req, res) => {
