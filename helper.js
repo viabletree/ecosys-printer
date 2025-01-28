@@ -206,7 +206,7 @@ const generatePDF = async (
 
 const generateFinishedGoodsSticker = async (item) => {
   return new Promise((resolve, reject) => {
-    const { barcode, alias, suggestedUnit, productWeight, customerCode } = item;
+    const { barcode, groupCode, alias, suggestedUnit, productWeight, customerCode } = item;
     bwipjs.toBuffer(
       {
         bcid: "code128",
@@ -257,6 +257,7 @@ const generateFinishedGoodsSticker = async (item) => {
           doc.fontSize(9).text(customerCode, 60, 80, { height: 20, width: 50 });
 
           doc.fontSize(9).text(alias, 90, 80, { height: 20, width: 50 });
+          doc.fontSize(9).text(groupCode, 150, 80, { height: 20, width: 50 });
           // doc
           //   .fontSize(9)
           //   .text(suggestedUnit, 110, 50, { height: 20, width: 50 });
@@ -281,6 +282,7 @@ const generateFinishedGoodsSticker = async (item) => {
             .text(customerCode, 60, 150, { height: 20, width: 50 });
 
           doc.fontSize(9).text(alias, 90, 150, { height: 20, width: 50 });
+          doc.fontSize(9).text(groupCode, 150, 150, { height: 20, width: 50 });
           // doc
           //   .fontSize(9)
           //   .text(suggestedUnit, 110, 150, { height: 20, width: 50 });

@@ -246,7 +246,7 @@ function mapVariablesToData(docVariables, data) {
   });
   return data;
 }
-checkVariablesInData(documentVariables, data) {
+function checkVariablesInData(documentVariables, data) {
   const missingVariables = [];
   const stack = [];
 
