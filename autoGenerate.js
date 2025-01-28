@@ -142,28 +142,29 @@ async function finishedGoodsBrandPrint(fileUrl, data) {
     // Generate the report
     const buffer = await createReport({
       template,
-      cmdDelimiter: ["{{", "}}"],
+      cmdDelimiter: ['{{', '}}'],
       data: updatedData,
       additionalJsContext: {
-        barcode: async (data) => {
+        barcodeImage: async (data) => {
           return {
             width: 6,
             height: 6,
-            data: await generateBarcode(data),
-            extension: ".gif",
+            data: await this.generateBarcode(data),
+            extension: '.gif',
           };
         },
-        qrcode: async (data) => {
+        qrcodeImage: async (data) => {
           return {
             width: 6,
             height: 6,
-            data: await generateQRCode(data),
-            extension: ".gif",
+            data: await this.generateQRCode(data),
+            extension: '.gif',
           };
         },
       },
       failFast: false,
     });
+
 
     // Write the generated file to disk
     const newFileName = sanitizeFileName(
@@ -245,11 +246,79 @@ function mapVariablesToData(docVariables, data) {
   });
   return data;
 }
+checkVariablesInData(documentVariables, data) {
+  const missingVariables = [];
+  const stack = [];
 
+  // Process documentVariables
+  for (let i = 0; i < documentVariables.length; i++) {
+    const variable = documentVariables[i];
+
+    if (variable.startsWith('EXEC') || variable.startsWith('End-FOR')) {
+      // Skip EXEC and End-FOR commands
+      continue;
+    }
+
+    if (variable.startsWith('FOR ')) {
+      // Handle FOR loop
+      const loopVariable = variable.match(/FOR (\w+) IN (.+)/); // Extract loop variable and array path
+      if (loopVariable) {
+        const loopItem = loopVariable[1]; // e.g., "product"
+        const loopPath = loopVariable[2]; // e.g., "order[0].orderProducts"
+
+        // Use Lodash to get the loop data
+        const loopData = _.get(data, loopPath);
+
+        if (_.isArray(loopData)) {
+          stack.push({ loopItem, loopData }); // Push loop context onto stack
+        } else {
+          missingVariables.push(loopPath); // If loop path doesn't exist, add to missingVariables
+        }
+      }
+      continue;
+    }
+
+    if (variable.startsWith('$')) {
+      // Handle loop variables (e.g., $product.product.name)
+      const loopContext = stack[stack.length - 1]; // Get the current loop context
+      if (loopContext) {
+        const loopItem = loopContext.loopItem; // e.g., "product"
+        const loopData = loopContext.loopData; // e.g., array of orderProducts
+
+        const normalizedVariable = variable.replace(`$${loopItem}.`, ''); // Remove the loop variable prefix
+        loopData.forEach((item) => {
+          if (!_.has(item, normalizedVariable)) {
+            missingVariables.push(variable); // Add missing variable if not found in loop item
+          }
+        });
+      }
+      continue;
+    }
+
+    // Normal variables
+    const normalizedVariable = variable.replace(/\s/g, ''); // Remove whitespace
+    if (!_.has(data, normalizedVariable)) {
+      missingVariables.push(variable);
+    }
+  }
+
+  if (missingVariables.length > 0) {
+    console.error('Missing variables in data:', missingVariables);
+    // return missing variables in error response
+    throw {
+      message: `Data is not complete.
+  ${missingVariables?.join(', ')} ${missingVariables.length === 1 ? 'is' : 'are'
+        } missing in the data.`,
+    };
+  }
+  return missingVariables;
+}
 // Main function
 async function processDocxVariables(filePath, data) {
+  
   // const text = await extractTextFromDocx(filePath);
   const docVariables = await extractDocVariables(filePath);
+  checkVariablesInData(docVariables, data);
 
   const updatedData = mapVariablesToData(docVariables, data);
   return updatedData;
