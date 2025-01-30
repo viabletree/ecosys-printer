@@ -47,9 +47,9 @@ async function convertDocxToPdfLibreOffice(docxPath, outputDir) {
 async function fetchProduct(fileName, id) {
   // console.log({ response: data });
   try {
-     const url = `${process.env.BASE_URL}${process.env.ENDPOINT}${id}`;
-     console.log(url);
-     const response = await axios.get(url);
+    const url = `${process.env.BASE_URL}${process.env.ENDPOINT}${id}`;
+    console.log(url);
+    const response = await axios.get(url);
     if (!data) {
       return "Data not found";
     }
@@ -107,14 +107,12 @@ async function fetchProduct(fileName, id) {
   }
 }
 
-
 async function finishedGoodsBrandPrint(fileUrl, data) {
   try {
     // Validate fileUrl
     if (!fileUrl.endsWith(".docx") && !fileUrl.endsWith(".doc")) {
       return "File must be a .docx or .doc file";
     }
-
 
     if (!data) {
       return "Data not found";
@@ -142,7 +140,7 @@ async function finishedGoodsBrandPrint(fileUrl, data) {
     // Generate the report
     const buffer = await createReport({
       template,
-      cmdDelimiter: ['{{', '}}'],
+      cmdDelimiter: ["{{", "}}"],
       data: updatedData,
       additionalJsContext: {
         barcodeImage: async (data) => {
@@ -150,7 +148,7 @@ async function finishedGoodsBrandPrint(fileUrl, data) {
             width: 6,
             height: 6,
             data: await this.generateBarcode(data),
-            extension: '.gif',
+            extension: ".gif",
           };
         },
         qrcodeImage: async (data) => {
@@ -158,13 +156,12 @@ async function finishedGoodsBrandPrint(fileUrl, data) {
             width: 6,
             height: 6,
             data: await this.generateQRCode(data),
-            extension: '.gif',
+            extension: ".gif",
           };
         },
       },
       failFast: false,
     });
-
 
     // Write the generated file to disk
     const newFileName = sanitizeFileName(
@@ -187,25 +184,6 @@ async function finishedGoodsBrandPrint(fileUrl, data) {
     throw new Error("An error occurred while processing the document");
   }
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 function getRandomKeys(inputObject, count = 2) {
   const keys = Object.keys(inputObject);
@@ -234,7 +212,7 @@ function mapVariablesToData(docVariables, data) {
         // If it's the last key, check if it exists or assign null
         if (!(key in current)) {
           current[key] = `{{${key}}}`;
-        } 
+        }
       } else {
         // If the key doesn't exist, create an empty object
         if (!(key in current)) {
@@ -254,12 +232,16 @@ function checkVariablesInData(documentVariables, data) {
   for (let i = 0; i < documentVariables.length; i++) {
     const variable = documentVariables[i];
 
-    if (variable.startsWith('EXEC') || variable.startsWith('End-FOR')) {
+    if (
+      variable.startsWith("EXEC") ||
+      variable.startsWith("End-FOR") ||
+      variable.startsWith("$idx")
+    ) {
       // Skip EXEC and End-FOR commands
       continue;
     }
 
-    if (variable.startsWith('FOR ')) {
+    if (variable.startsWith("FOR ")) {
       // Handle FOR loop
       const loopVariable = variable.match(/FOR (\w+) IN (.+)/); // Extract loop variable and array path
       if (loopVariable) {
@@ -278,14 +260,14 @@ function checkVariablesInData(documentVariables, data) {
       continue;
     }
 
-    if (variable.startsWith('$')) {
+    if (variable.startsWith("$")) {
       // Handle loop variables (e.g., $product.product.name)
       const loopContext = stack[stack.length - 1]; // Get the current loop context
       if (loopContext) {
         const loopItem = loopContext.loopItem; // e.g., "product"
         const loopData = loopContext.loopData; // e.g., array of orderProducts
 
-        const normalizedVariable = variable.replace(`$${loopItem}.`, ''); // Remove the loop variable prefix
+        const normalizedVariable = variable.replace(`$${loopItem}.`, ""); // Remove the loop variable prefix
         loopData.forEach((item) => {
           if (!_.has(item, normalizedVariable)) {
             missingVariables.push(variable); // Add missing variable if not found in loop item
@@ -296,26 +278,26 @@ function checkVariablesInData(documentVariables, data) {
     }
 
     // Normal variables
-    const normalizedVariable = variable.replace(/\s/g, ''); // Remove whitespace
+    const normalizedVariable = variable.replace(/\s/g, ""); // Remove whitespace
     if (!_.has(data, normalizedVariable)) {
       missingVariables.push(variable);
     }
   }
 
   if (missingVariables.length > 0) {
-    console.error('Missing variables in data:', missingVariables);
+    console.error("Missing variables in data:", missingVariables);
     // return missing variables in error response
     throw {
       message: `Data is not complete.
-  ${missingVariables?.join(', ')} ${missingVariables.length === 1 ? 'is' : 'are'
-        } missing in the data.`,
+  ${missingVariables?.join(", ")} ${
+        missingVariables.length === 1 ? "is" : "are"
+      } missing in the data.`,
     };
   }
   return missingVariables;
 }
 // Main function
 async function processDocxVariables(filePath, data) {
-  
   // const text = await extractTextFromDocx(filePath);
   const docVariables = await extractDocVariables(filePath);
   checkVariablesInData(docVariables, data);
@@ -351,7 +333,6 @@ async function extractDocVariables(docxPath) {
     return [];
   }
 }
-
 
 async function generateBarcode(code) {
   return new Promise((resolve, reject) => {
