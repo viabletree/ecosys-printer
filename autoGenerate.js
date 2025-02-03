@@ -8,6 +8,7 @@ import qrcode from "qr-image";
 import bwipjs from "bwip-js";
 
 import { exec } from "child_process";
+import _ from 'lodash';
 
 const uploadDir = "./uploads";
 const isWin = process.platform === "win32";
@@ -44,93 +45,8 @@ async function convertDocxToPdfLibreOffice(docxPath, outputDir) {
   });
 }
 
-async function fetchProduct(fileName, id) {
-  // console.log({ response: data });
-  try {
-    const url = `${process.env.BASE_URL}${process.env.ENDPOINT}${id}`;
-    console.log(url);
-    const response = await axios.get(url);
-    if (!data) {
-      return "Data not found";
-    }
-    if (!fileName.endsWith(".docx") && !fileName.endsWith(".doc")) {
-      // if file exists return empty with message
-      // file must be doc or docx file checck if docx file
-      return "File must be a docx file";
-    }
-    const filePath = `${uploadDir}/${fileName}`;
-    if (!fs.existsSync(filePath)) {
-      return "File not found";
-    }
-    const template = fs.readFileSync(filePath);
-
-    const updatedData = await processDocxVariables(filePath, data);
-
-    const buffer = await createReport({
-      template,
-      cmdDelimiter: ["{{", "}}"],
-      data: updatedData,
-      additionalJsContext: {
-        barcode: async (data) => {
-          return {
-            width: 6,
-            height: 6,
-            data: await generateBarcode(data),
-            extension: ".gif",
-          };
-        },
-        qrcode: async (data) => {
-          return {
-            width: 6,
-            height: 6,
-            data: await generateQRCode(data),
-            extension: ".gif",
-          };
-        },
-      },
-      failFast: false,
-    });
-    // Write the report to a file
-    const newFileName = sanitizeFileName(`${crypto.randomUUID()}-${fileName}`);
-    const newPdfName = `${newFileName}.pdf`;
-    const outputPath = `${uploadDir}/${newFileName}`;
-    console.log("Creating docx file from template and variables");
-    fs.writeFileSync(outputPath, buffer);
-
-    console.log("Converting docx to pdf");
-    await convertDocxToPdfLibreOffice(outputPath, `${uploadDir}`);
-    console.log("removing docx file from server");
-    // fs.unlinkSync(outputPath);
-    return newPdfName;
-  } catch (error) {
-    console.log({ error });
-  }
-}
-
-async function finishedGoodsBrandPrint(fileUrl, data) {
-  try {
-    // Validate fileUrl
-    if (!fileUrl.endsWith(".docx") && !fileUrl.endsWith(".doc")) {
-      return "File must be a .docx or .doc file";
-    }
-
-    if (!data) {
-      return "Data not found";
-    }
-
-    // Download the file from the provided URL
-    const response = await axios.get(fileUrl, { responseType: "arraybuffer" });
-    if (response.status !== 200) {
-      return "Failed to download the file";
-    }
-
-    const downloadedFileName = `${crypto.randomUUID()}-${fileUrl
-      .split("/")
-      .pop()}`;
-    const filePath = `${uploadDir}/${sanitizeFileName(downloadedFileName)}`;
-    fs.writeFileSync(filePath, response.data);
-    console.log(`File downloaded to ${filePath}`);
-
+async function generateDocument(filePath, data){
+  try{
     // Read the downloaded file
     const template = fs.readFileSync(filePath);
 
@@ -163,6 +79,9 @@ async function finishedGoodsBrandPrint(fileUrl, data) {
       failFast: false,
     });
 
+    const downloadedFileName = `${crypto.randomUUID()}-${filePath
+      .split("/")
+      .pop()}`;
     // Write the generated file to disk
     const newFileName = sanitizeFileName(
       `${crypto.randomUUID()}-${downloadedFileName}`
@@ -179,9 +98,38 @@ async function finishedGoodsBrandPrint(fileUrl, data) {
     // fs.unlinkSync(outputPath);
 
     return `${uploadDir}/${newPdfName}`;
+  }catch(e){
+    throw new Error( e.message)
+  }
+}
+
+async function getDocumentFile(fileUrl){
+  // Validate fileUrl
+  if (!fileUrl.endsWith(".docx") && !fileUrl.endsWith(".doc")) {
+    throw new Error("File must be a .docx or .doc file");
+  }
+
+  // Download the file from the provided URL
+  const response = await axios.get(fileUrl, { responseType: "arraybuffer" });
+  if (response.status !== 200) {
+    throw new Error("Failed to download the file");
+  }
+
+  const downloadedFileName = `${crypto.randomUUID()}-${fileUrl
+    .split("/")
+    .pop()}`;
+  const filePath = `${uploadDir}/${sanitizeFileName(downloadedFileName)}`;
+  fs.writeFileSync(filePath, response.data);
+  console.log(`File downloaded to ${filePath}`);
+  return filePath;
+}
+async function finishedGoodsBrandPrint(fileUrl, data) {
+  try {
+    const filePath = await getDocumentFile(fileUrl);
+    return await generateDocument(filePath, data); 
   } catch (error) {
     console.error({ error });
-    throw new Error("An error occurred while processing the document");
+    throw new Error(error.message);
   }
 }
 
@@ -250,6 +198,7 @@ function checkVariablesInData(documentVariables, data) {
 
         // Use Lodash to get the loop data
         const loopData = _.get(data, loopPath);
+        
 
         if (_.isArray(loopData)) {
           stack.push({ loopItem, loopData }); // Push loop context onto stack
@@ -366,4 +315,4 @@ async function generateQRCode(code) {
   return pngBuffer.toString("base64"); // Embed as base64
   // return `data:image/png;base64,${pngBuffer.toString("base64")}`; // Embed as base64
 }
-export { fetchProduct, finishedGoodsBrandPrint };
+export { finishedGoodsBrandPrint, generateDocument, getDocumentFile };

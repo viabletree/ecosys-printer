@@ -1,12 +1,7 @@
 import express from "express";
 import cors from "cors";
-import multer from "multer";
-import path from "path";
-import ptp from "pdf-to-printer";
 import helper from "./helper.js";
 import dotenv from "dotenv";
-import fs from "fs";
-import { monitorPrintJob } from "./cleanDirectory.js";
 import { finishedGoodsBrandPrint } from "./autoGenerate.js";
 
 dotenv.config();
@@ -14,48 +9,15 @@ dotenv.config();
 const {
   generatePDF,
   generateFinishedGoodsSticker,
-  generateFullBarcode,
   clearDirectory,
-  getPrinterList,
   getFullPrinterList,
 } = helper;
 
-const storage = multer.diskStorage({
-  destination: function (req, file, cb) {
-    cb(null, "uploads/");
-  },
-  filename: function (req, file, cb) {
-    const uniqueSuffix = Date.now() + "-" + Math.round(Math.random() * 1e9);
-    cb(null, uniqueSuffix + file.originalname);
-  },
-});
-const upload = multer({ storage: storage });
+const uploadDir = process.env.UPLOAD_DIR;
+
 const app = express();
 app.use(express.json());
 app.use(cors());
-
-app.post("/api/file-upload", upload.single("file"), async (req, res) => {
-  try {
-    const tmpFilePath = path.join(`./uploads/${req?.file?.filename}`);
-
-    await ptp.print(tmpFilePath);
-    await ptp.print(tmpFilePath);
-    await ptp.print(tmpFilePath);
-
-    res.status(200).json({ success: "file upload successful" });
-  } catch (error) {
-    res.status(500).json({ error: error });
-  }
-});
-
-app.post("/api/generate-barcodes2", async (req, res) => {
-  try {
-    await getPrinterList('1736410579123-120971357');
-} catch (error) {
-  console.error("generate barcodes error -->>", error);
-  return res.status(500).json({ error: error });
-}
-});
 
 app.post("/api/generate-barcodes", async (req, res) => {
   try {
@@ -73,7 +35,9 @@ app.post("/api/generate-barcodes", async (req, res) => {
           item.intCode,
           item.suppSubName,
           item.suppLocation,
-          item.blWeight
+          item.blWeight,
+          item.printer,
+          item.document,
         );
       }
     }
@@ -87,10 +51,11 @@ app.post("/api/generate-barcodes", async (req, res) => {
 
 app.post("/api/generate-finished-goods-sticker", async (req, res) => {
   try {
-    const { stickerData, packingType } = req?.body;
+    const { stickerData, packingType, filePath, printer } = req?.body;
 
     console.log("body -->>>", stickerData);
-        await generateFinishedGoodsSticker(stickerData);
+    await generateFinishedGoodsSticker(filePath, stickerData, printer);
+
 
     return res.status(200).json({ success: "barcodes generated successfully" });
   } catch (error) {
@@ -116,95 +81,15 @@ app.post("/api/generate-finished-goods-brand", async (req, res) => {
    
        await getFullPrinterList(pdf);
       }
-  
-    
-   
+    await clearDirectory(uploadDir);
 
     return res.status(200).json({ success: "barcodes generated successfully" });
   } catch (error) {
     console.error("generate barcodes error -->>", error);
-    return res.status(500).json({ error: error });
+    return res.status(500).json({ error: error.message });
   }
 });
 
-
-app.post("/api/generate-full-barcodes", async (req, res) => {
-  try {
-    const body = req?.body;
-    const err = [];
-
-    console.log("body -->>>", body);
-    for (let i = 0; i < body.length; i++) {
-      const item = body[i];
-      if (!item.legacyCode) {
-        err.push("legacyCode");
-      }
-      if (!item.productName) {
-        err.push("productName");
-      }
-      if (!item.productCategory) {
-        err.push("productCategory");
-      }
-    }
-    if (err.length > 0) {
-      // check which field is missing
-      const msg = "Please provide the required fields";
-      return res.status(400).json({
-        data: [
-          {
-            message: msg,
-            key: "product",
-            data: {
-              key: err.join(", "),
-            },
-          },
-        ],
-        message: msg,
-        status: false,
-        statusCode: 400,
-      });
-    }
-    const resultPdf = [];
-    for (let i = 0; i < body.length; i++) {
-      const item = body[i];
-      resultPdf.push(await generateFullBarcode('a','b'));
-    }
-
-    // for(let i = 0; i < resultPdf.length; i++){
-    //   console.log('Printing resultPdf[i][1] -->>', resultPdf[i][1]);
-    //   await getFullPrinterList(resultPdf[i][1]);
-    // }
-    // console.log('----------- / Pringint complete -----------')
-    
-
-    // monitorPrintJob(function(){
-    //   console.log('Ready to delete all');
-    //   for (let i = 0; i < resultPdf.length; i++) {
-    //     console.log("Removing resultPdf[i][1] -->>", resultPdf[i][1]);
-    //     if (fs.existsSync(resultPdf[i][0])) {
-    //       fs.unlinkSync(resultPdf[i][0]);
-    //     }
-    //     if (fs.existsSync(resultPdf[i][1])) {
-    //       fs.unlinkSync(resultPdf[i][1]);
-    //     }
-    //     if (fs.existsSync(resultPdf[i][2])) {
-    //       fs.unlinkSync(resultPdf[i][2]);
-    //     }
-    //   }
-    // } );
-
-  
-    // await clearDirectory();
-    console.log("resultPdf -->>", resultPdf);
-    return res.status(200).json({
-      status: true,
-      message: "Barcode printed successfully uploaded successfully",
-    });
-  } catch (error) {
-    console.error("generate barcodes error -->>", error);
-    return res.status(500).json({ error: error });
-  }
-});
 app.listen(process.env.PORT, () =>
   console.log("RUNNING ON PORT " + process.env.PORT)
 );
