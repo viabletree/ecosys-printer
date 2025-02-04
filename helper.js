@@ -21,7 +21,6 @@ function sleep(ms) {
 
 const getPrinterList = async (pdf, printer) => {
   sleep(10000);
-  return pdf;
 
   const options = {
     printer: printer,
@@ -133,7 +132,7 @@ async function clearDirectory() {
   try {
     const files = await fs.promises.readdir(directory); // Read directory contents
     for (const file of files) {
-      if (file === '.gitignore') continue; // Skip the .gitignore file
+      if (file === ".gitignore") continue; // Skip the .gitignore file
       const filePath = path.join(directory, file);
       await fs.promises.unlink(filePath); // Asynchronously delete each file
       console.log(`Deleted file: ${filePath}`);
