@@ -30,7 +30,7 @@ app.post("/api/generate-barcodes", async (req, res) => {
     if (items?.length > 0) {
       for (let item of items) {
         await generatePDF(
-          item.barCode,
+          item.barcode,
           item.score,
           item.intCode,
           item.suppSubName,

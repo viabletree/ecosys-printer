@@ -82,7 +82,7 @@ async function createBarcode(barCode) {
 }
 
 const generatePDF = async (
-  barCode,
+  barcode,
   score,
   intCode,
   suppSubName,
@@ -91,17 +91,18 @@ const generatePDF = async (
   printer,
   document,
 ) => {
-  const pdf = await generateDocument({
-    barCode, score, intCode, suppSubName, suppLocation, blWeight
-  }, document);
+  const doc = await getDocumentFile(document);
+  const pdf = await generateDocument(doc, {
+    barcode, score, intCode, suppSubName, suppLocation, blWeight
+  });
 
-  const rotatedPdf = `${uploadDir}rotated_output_${barCode}.pdf`;
+  const rotatedPdf =pdf;// `${uploadDir}rotated_output_${barcode}.pdf`;
     await rotatePdf(
-      `${uploadDir}output_${barCode}.pdf`,
+      `${uploadDir}output_${barcode}.pdf`,
       rotatedPdf
     );
 
-      await getPrinterList(rotatedPdf, printer);
+       await getPrinterList(rotatedPdf, printer);
       // remove all files inside uploads directory
       await clearDirectory(uploadDir);
     
