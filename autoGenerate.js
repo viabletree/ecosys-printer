@@ -8,7 +8,7 @@ import qrcode from "qr-image";
 import bwipjs from "bwip-js";
 
 import { exec } from "child_process";
-import _ from 'lodash';
+import _ from "lodash";
 
 const uploadDir = "./uploads";
 const isWin = process.platform === "win32";
@@ -45,8 +45,8 @@ async function convertDocxToPdfLibreOffice(docxPath, outputDir) {
   });
 }
 
-async function generateDocument(filePath, data){
-  try{
+async function generateDocument(filePath, data) {
+  try {
     // Read the downloaded file
     const template = fs.readFileSync(filePath);
 
@@ -87,7 +87,7 @@ async function generateDocument(filePath, data){
       `${crypto.randomUUID()}-${downloadedFileName}`
     );
     const newPdfName = `${newFileName}.pdf`;
-    const outputPath = `${uploadDir}/${newFileName}`;
+    const outputPath = `${uploadDir}/${newFileName}.docx`;
     console.log("Creating docx file from template and variables");
     fs.writeFileSync(outputPath, buffer);
 
@@ -98,12 +98,12 @@ async function generateDocument(filePath, data){
     // fs.unlinkSync(outputPath);
 
     return `${uploadDir}/${newPdfName}`;
-  }catch(e){
-    throw new Error( e.message)
+  } catch (e) {
+    throw new Error(e.message);
   }
 }
 
-async function getDocumentFile(fileUrl){
+async function getDocumentFile(fileUrl) {
   // Validate fileUrl
   if (!fileUrl.endsWith(".docx") && !fileUrl.endsWith(".doc")) {
     throw new Error("File must be a .docx or .doc file");
@@ -118,7 +118,7 @@ async function getDocumentFile(fileUrl){
   const downloadedFileName = `${crypto.randomUUID()}-${fileUrl
     .split("/")
     .pop()}`;
-  const filePath = `${uploadDir}/${sanitizeFileName(downloadedFileName)}`;
+  const filePath = `${uploadDir}/${sanitizeFileName(downloadedFileName)}.docx`;
   fs.writeFileSync(filePath, response.data);
   console.log(`File downloaded to ${filePath}`);
   return filePath;
@@ -126,7 +126,7 @@ async function getDocumentFile(fileUrl){
 async function finishedGoodsBrandPrint(fileUrl, data) {
   try {
     const filePath = await getDocumentFile(fileUrl);
-    return await generateDocument(filePath, data); 
+    return await generateDocument(filePath, data);
   } catch (error) {
     console.error({ error });
     throw new Error(error.message);
@@ -184,7 +184,7 @@ function checkVariablesInData(documentVariables, data) {
       variable.startsWith("EXEC") ||
       variable.startsWith("End-FOR") ||
       variable.startsWith("$idx") ||
-      variable.startsWith("IMAGE") 
+      variable.startsWith("IMAGE")
     ) {
       // Skip EXEC and End-FOR commands
       continue;
@@ -199,7 +199,6 @@ function checkVariablesInData(documentVariables, data) {
 
         // Use Lodash to get the loop data
         const loopData = _.get(data, loopPath);
-        
 
         if (_.isArray(loopData)) {
           stack.push({ loopItem, loopData }); // Push loop context onto stack

@@ -25,7 +25,7 @@ app.post("/api/generate-barcodes", async (req, res) => {
 
     console.log("body -->>>", body);
 
-    const { items, isBarcode } = body;
+    const { items, filePath, printer, isBarcode } = body;
 
     if (items?.length > 0) {
       for (let item of items) {
@@ -36,8 +36,8 @@ app.post("/api/generate-barcodes", async (req, res) => {
           item.suppSubName,
           item.suppLocation,
           item.blWeight,
-          item.printer,
-          item.document,
+          printer,
+          filePath
         );
       }
     }
@@ -56,7 +56,6 @@ app.post("/api/generate-finished-goods-sticker", async (req, res) => {
     console.log("body -->>>", stickerData);
     await generateFinishedGoodsSticker(filePath, stickerData, printer);
 
-
     return res.status(200).json({ success: "barcodes generated successfully" });
   } catch (error) {
     console.error("generate barcodes error -->>", error);
@@ -70,17 +69,17 @@ app.post("/api/generate-finished-goods-brand", async (req, res) => {
 
     console.log("body -->>>", item);
     let copies = 1;
-    if(item.numberOfCopies){
-      copies = item.numberOfCopies; 
+    if (item.numberOfCopies) {
+      copies = item.numberOfCopies;
     }
-      for(let i = 0; i < copies; i++){
-        const pdf = await finishedGoodsBrandPrint(
-          item.templatePath,
-          item.templateData
-        );
-   
-       await getFullPrinterList(pdf);
-      }
+    for (let i = 0; i < copies; i++) {
+      const pdf = await finishedGoodsBrandPrint(
+        item.templatePath,
+        item.templateData
+      );
+
+      await getFullPrinterList(pdf);
+    }
     await clearDirectory(uploadDir);
 
     return res.status(200).json({ success: "barcodes generated successfully" });

@@ -29,11 +29,9 @@ const getPrinterList = async (pdf, printer) => {
   };
 
   try {
-    return print(pdf, options).then(
-      () => {
-        console.log("doc printed");
-      }
-    );
+    return print(pdf, options).then(() => {
+      console.log("doc printed");
+    });
   } catch (error) {
     console.log(error);
   }
@@ -89,33 +87,31 @@ const generatePDF = async (
   suppLocation,
   blWeight,
   printer,
-  document,
+  document
 ) => {
   const doc = await getDocumentFile(document);
   const pdf = await generateDocument(doc, {
-    barcode, score, intCode, suppSubName, suppLocation, blWeight
+    barcode,
+    score,
+    intCode,
+    suppSubName,
+    suppLocation,
+    blWeight,
   });
 
-  const rotatedPdf =pdf;// `${uploadDir}rotated_output_${barcode}.pdf`;
-    await rotatePdf(
-      `${uploadDir}output_${barcode}.pdf`,
-      rotatedPdf
-    );
+  const rotatedPdf = `${uploadDir}output_${barcode}.pdf`; // `${uploadDir}rotated_output_${barcode}.pdf`;
+  await rotatePdf(pdf, rotatedPdf);
 
-       await getPrinterList(rotatedPdf, printer);
-      // remove all files inside uploads directory
-      await clearDirectory(uploadDir);
-    
+  await getPrinterList(rotatedPdf, printer);
+  // remove all files inside uploads directory
+  await clearDirectory(uploadDir);
 };
 
 const generateFinishedGoodsSticker = async (filePath, item, printer) => {
   const file = await getDocumentFile(filePath);
   const pdf = await generateDocument(file, item);
-  const rotatedPdf = `${uploadDir}rotated_output_${item.barcode}.pdf`
-  await rotatePdf(
-    pdf,
-    rotatedPdf
-  );
+  const rotatedPdf = `${uploadDir}rotated_output_${item.barcode}.pdf`;
+  await rotatePdf(pdf, rotatedPdf);
 
   await getPrinterList(rotatedPdf, printer);
   // remove all files inside uploads directory
@@ -146,11 +142,10 @@ async function clearDirectory() {
   }
 }
 
-
 export default {
   generatePDF,
   clearDirectory,
   getPrinterList,
   getFullPrinterList,
-  generateFinishedGoodsSticker
+  generateFinishedGoodsSticker,
 };
