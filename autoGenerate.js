@@ -63,7 +63,7 @@ async function generateDocument(filePath, data){
           return {
             width: 6,
             height: 6,
-            data: await this.generateBarcode(data),
+            data: await generateBarcode(data),
             extension: ".gif",
           };
         },
@@ -71,7 +71,7 @@ async function generateDocument(filePath, data){
           return {
             width: 6,
             height: 6,
-            data: await this.generateQRCode(data),
+            data: await generateQRCode(data),
             extension: ".gif",
           };
         },
@@ -183,7 +183,8 @@ function checkVariablesInData(documentVariables, data) {
     if (
       variable.startsWith("EXEC") ||
       variable.startsWith("End-FOR") ||
-      variable.startsWith("$idx")
+      variable.startsWith("$idx") ||
+      variable.startsWith("IMAGE") 
     ) {
       // Skip EXEC and End-FOR commands
       continue;
