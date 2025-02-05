@@ -6,6 +6,7 @@ import crypto from "crypto";
 import { createReport } from "docx-templates";
 import qrcode from "qr-image";
 import bwipjs from "bwip-js";
+import sharp from "sharp";
 
 import { exec } from "child_process";
 import _ from "lodash";
@@ -59,11 +60,11 @@ async function generateDocument(filePath, data) {
       cmdDelimiter: ["{{", "}}"],
       data: updatedData,
       additionalJsContext: {
-        barcodeImage: async (data) => {
+        barcodeImage: async (_data, rotation = 0) => {
           return {
             width: 6,
             height: 6,
-            data: await generateBarcode(data),
+            data: await generateBarcode(_data, rotation),
             extension: ".gif",
           };
         },
@@ -283,7 +284,7 @@ async function extractDocVariables(docxPath) {
   }
 }
 
-async function generateBarcode(code) {
+async function generateBarcode(code, rotation = 0) {
   return new Promise((resolve, reject) => {
     bwipjs.toBuffer(
       {
@@ -293,13 +294,21 @@ async function generateBarcode(code) {
         height: 30,
         includetext: true, // Include the text under the barcode
       },
-      (err, png) => {
+      async (err, png) => {
         if (err) {
           console.error("Error generating barcode:", err.message);
           reject(err);
         } else {
-          resolve(png.toString("base64")); // Embed as base64
+          // resolve(png.toString("base64")); // Embed as base64
           // resolve(`data:image/png;base64,${png.toString("base64")}`); // Embed as base64
+          try {
+            // Rotate barcode image using sharp
+            const rotatedBuffer = await sharp(png).rotate(rotation).toBuffer();
+            resolve(rotatedBuffer.toString("base64")); // Return rotated barcode as base64
+          } catch (rotationError) {
+            console.error("Error rotating barcode:", rotationError.message);
+            reject(rotationError);
+          }
         }
       }
     );
