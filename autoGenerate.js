@@ -45,14 +45,23 @@ async function convertDocxToPdfLibreOffice(docxPath, outputDir) {
     });
   });
 }
-
+function applyDefaultValues(data) {
+  return {
+    barcode: data.barcode ?? '-',
+    blWeight: data.blWeight ?? '-',
+    intCode: data.intCode ?? '-',
+    score: data.score ?? '-',
+    suppLocation: data.suppLocation ?? '-',
+    suppSubName: data.suppSubName ?? '-',
+  };
+}
 async function generateDocument(filePath, data) {
   try {
     // Read the downloaded file
     const template = fs.readFileSync(filePath);
 
     // Process variables and create updated data
-    const updatedData = await processDocxVariables(filePath, data);
+    const updatedData = await processDocxVariables(filePath, applyDefaultValues(data));
 
     // Generate the report
     const buffer = await createReport({
@@ -105,6 +114,7 @@ async function generateDocument(filePath, data) {
 }
 
 async function getDocumentFile(fileUrl) {
+  console.log('calling getDocumentFile', fileUrl);
   // Validate fileUrl
   if (!fileUrl.endsWith(".docx") && !fileUrl.endsWith(".doc")) {
     throw new Error("File must be a .docx or .doc file");
