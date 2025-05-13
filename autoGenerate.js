@@ -28,7 +28,7 @@ async function convertDocxToPdfLibreOffice(docxPath, outputDir) {
     ? '"C:\\Program Files\\LibreOffice\\program\\soffice.exe" '
     : "libreoffice ";
   const command = `${cmd} --headless --convert-to pdf "${docxPath}" --outdir "${outputDir}"`;
-  // console.log("command", command);
+  console.log("command", command);
   return new Promise((resolve, reject) => {
     exec(command, (error, stdout, stderr) => {
       if (error) {
@@ -45,14 +45,24 @@ async function convertDocxToPdfLibreOffice(docxPath, outputDir) {
     });
   });
 }
+function getFormattedDate() {
+  const now = new Date();
+  const day = String(now.getDate()).padStart(2, '0');
+  const month = String(now.getMonth() + 1).padStart(2, '0'); // Months are 0-based
+  const year = now.getFullYear();
+
+  return `${day}${month}${year}`;
+}
 function applyDefaultValues(data) {
   return {
     barcode: data.barcode ?? '-',
-    blWeight: data.blWeight ?? '-',
+    code: data.barcode ?? '-',
+    weight: data.blWeight ?? '-',
     intCode: data.intCode ?? '-',
-    score: data.score ?? '-',
-    suppLocation: data.suppLocation ?? '-',
+    score: data.score ?? '7',
+    location: data.suppLocation ?? '-',
     suppSubName: data.suppSubName ?? '-',
+    date: getFormattedDate(),
   };
 }
 async function generateDocument(filePath, data) {
@@ -60,8 +70,9 @@ async function generateDocument(filePath, data) {
     // Read the downloaded file
     const template = fs.readFileSync(filePath);
 
+    const _data = { ...data, ...applyDefaultValues(data) };
     // Process variables and create updated data
-    const updatedData = await processDocxVariables(filePath, applyDefaultValues(data));
+    const updatedData = await processDocxVariables(filePath, _data);
 
     // Generate the report
     const buffer = await createReport({
@@ -69,18 +80,18 @@ async function generateDocument(filePath, data) {
       cmdDelimiter: ["{{", "}}"],
       data: updatedData,
       additionalJsContext: {
-        barcodeImage: async (_data, rotation = 0) => {
+        barcodeImage: async (_data, rotation = 90) => {
           return {
-            width: 6,
-            height: 6,
+            width: 3,
+            height: 10,
             data: await generateBarcode(_data, rotation),
             extension: ".gif",
           };
         },
         qrcodeImage: async (data) => {
           return {
-            width: 6,
-            height: 6,
+            width: 4,
+            height: 4,
             data: await generateQRCode(data),
             extension: ".gif",
           };
@@ -103,11 +114,12 @@ async function generateDocument(filePath, data) {
 
     // Convert to PDF
     console.log("Converting docx to pdf");
-    await convertDocxToPdfLibreOffice(outputPath, `${uploadDir}`);
+    await convertDocxToPdfLibreOffice(newPdfName, `${uploadDir}`);
     console.log("Removing docx file from server");
-    // fs.unlinkSync(outputPath);
+    fs.unlinkSync(outputPath);
 
     return `${uploadDir}/${newPdfName}`;
+    // return `${outputPath}`;
   } catch (e) {
     throw new Error(e.message);
   }
@@ -325,13 +337,26 @@ async function generateBarcode(code, rotation = 0) {
   });
 }
 
-async function generateQRCode(code) {
-  const pngBuffer = qrcode.imageSync(code, {
-    type: "png",
-    size: 10,
-    margin: 0,
-  });
-  return pngBuffer.toString("base64"); // Embed as base64
-  // return `data:image/png;base64,${pngBuffer.toString("base64")}`; // Embed as base64
+// async function generateQRCode(code) {
+//   const pngBuffer = qrcode.imageSync(code, {
+//     type: "png",
+//     size: 10,
+//     margin: 0,
+//   });
+//   return pngBuffer.toString("base64"); // Embed as base64
+//   // return `data:image/png;base64,${pngBuffer.toString("base64")}`; // Embed as base64
+// }
+
+ async function generateQRCode(code) {
+  try {
+    const png = await bwipjs.toBuffer({
+      bcid: 'qrcode', // Barcode type
+      text: code,
+    });
+    return png.toString('base64');
+  } catch (error) {
+    console.error('Error generating barcode:', error);
+    throw error;
+  }
 }
 export { finishedGoodsBrandPrint, generateDocument, getDocumentFile };
