@@ -82,16 +82,16 @@ async function generateDocument(filePath, data) {
       additionalJsContext: {
         barcodeImage: async (_data, rotation = 90) => {
           return {
-            width: 3,
-            height: 10,
+            width: 1.5,
+            height: 4,
             data: await generateBarcode(_data, rotation),
             extension: ".gif",
           };
         },
         qrcodeImage: async (data) => {
           return {
-            width: 4,
-            height: 4,
+            width: 1,
+            height: 1,
             data: await generateQRCode(data),
             extension: ".gif",
           };
@@ -114,7 +114,7 @@ async function generateDocument(filePath, data) {
 
     // Convert to PDF
     console.log("Converting docx to pdf");
-    await convertDocxToPdfLibreOffice(newPdfName, `${uploadDir}`);
+    await convertDocxToPdfLibreOffice(outputPath, `${uploadDir}`);
     console.log("Removing docx file from server");
     fs.unlinkSync(outputPath);
 
@@ -312,8 +312,7 @@ async function generateBarcode(code, rotation = 0) {
       {
         bcid: "code128", // Barcode type
         text: code,
-        scale: 3,
-        height: 30,
+        scale: 4,
         includetext: true, // Include the text under the barcode
       },
       async (err, png) => {
