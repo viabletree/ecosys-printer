@@ -57,10 +57,10 @@ function applyDefaultValues(data) {
   return {
     barcode: data.barcode ?? '-',
     code: data.barcode ?? '-',
-    weight: data.blWeight ?? '-',
+    weight: data.weightValue ?? '-',
     intCode: data.intCode ?? '-',
     score: data.score ?? '7',
-    location: data.suppLocation ?? '-',
+    location: data.sourceName ?? '-',
     suppSubName: data.suppSubName ?? '-',
     date: getFormattedDate(),
   };

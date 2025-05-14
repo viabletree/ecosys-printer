@@ -86,6 +86,8 @@ const generatePDF = async (
   suppSubName,
   suppLocation,
   blWeight,
+  weightValue,
+  sourceName,
   printer,
   document
 ) => {
@@ -97,6 +99,8 @@ const generatePDF = async (
     suppSubName,
     suppLocation,
     blWeight,
+    weightValue,
+    sourceName,
   });
 
   // const rotatedPdf = `${uploadDir}output_${barcode}.pdf`; // `${uploadDir}rotated_output_${barcode}.pdf`;
