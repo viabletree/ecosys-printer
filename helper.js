@@ -25,7 +25,7 @@ const getPrinterList = async (pdf, printer) => {
   const options = {
     printer: printer,
     pages: "1",
-    // scale: "fit",
+    scale: "noscale",
   };
 
   try {
@@ -99,10 +99,10 @@ const generatePDF = async (
     blWeight,
   });
 
-  const rotatedPdf = `${uploadDir}output_${barcode}.pdf`; // `${uploadDir}rotated_output_${barcode}.pdf`;
-  await rotatePdf(pdf, rotatedPdf);
+  // const rotatedPdf = `${uploadDir}output_${barcode}.pdf`; // `${uploadDir}rotated_output_${barcode}.pdf`;
+  // await rotatePdf(pdf, rotatedPdf);
 
-  await getPrinterList(rotatedPdf, printer);
+  await getPrinterList(pdf, printer);
   // remove all files inside uploads directory
   await clearDirectory(uploadDir);
 };
