@@ -94,15 +94,3 @@ app.post("/api/generate-finished-goods-brand", async (req, res) => {
 app.listen(process.env.PORT, () =>
   console.log("RUNNING ON PORT " + process.env.PORT)
 );
-
-/**
- 
-PRINTER_NAME="Zebra S4M (203 dpi) - ZPL"
-FULL_PRINTER_NAME="HP LaserJet M14-M17"
-PORT=8000
-UPLOAD_DIR="uploads/"
-ENDPOINT="http://localhost:8000"
-BASE_URL=http://172.16.3.7:3000/api/
-PO_ENDPOINT=admin/purchaseOrder/foo/
-
- */
