@@ -38,6 +38,7 @@ app.post("/api/generate-barcodes", async (req, res) => {
           item.blWeight,
           item.value,
           item.order.orderSource.name,
+          item.code,
           printer,
           filePath
         );

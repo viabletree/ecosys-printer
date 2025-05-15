@@ -56,7 +56,7 @@ function getFormattedDate() {
 function applyDefaultValues(data) {
   return {
     barcode: data.barcode ?? '-',
-    code: data.barcode ?? '-',
+    code: data.code ?? '-',
     weight: data.weightValue ?? '-',
     intCode: data.intCode ?? '-',
     score: data.score ?? '7',

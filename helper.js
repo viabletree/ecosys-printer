@@ -88,6 +88,7 @@ const generatePDF = async (
   blWeight,
   weightValue,
   sourceName,
+  code,
   printer,
   document
 ) => {
@@ -100,6 +101,7 @@ const generatePDF = async (
     suppLocation,
     blWeight,
     weightValue,
+    code,
     sourceName,
   });
 
