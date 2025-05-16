@@ -116,10 +116,10 @@ const generatePDF = async (
 const generateFinishedGoodsSticker = async (filePath, item, printer) => {
   const file = await getDocumentFile(filePath);
   const pdf = await generateDocument(file, item);
-  const rotatedPdf = `${uploadDir}rotated_output_${item.barcode}.pdf`;
-  await rotatePdf(pdf, rotatedPdf);
+  // const rotatedPdf = `${uploadDir}rotated_output_${item.barcode}.pdf`;
+  // await rotatePdf(pdf, rotatedPdf);
 
-  await getPrinterList(rotatedPdf, printer);
+  await getPrinterList(pdf, printer);
   // remove all files inside uploads directory
   await clearDirectory(uploadDir);
 };
