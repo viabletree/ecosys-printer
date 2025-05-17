@@ -123,6 +123,16 @@ const generateFinishedGoodsSticker = async (filePath, item, printer) => {
   // remove all files inside uploads directory
   await clearDirectory(uploadDir);
 };
+const generateGroupPackSticker = async (filePath, item, printer) => {
+  const file = await getDocumentFile(filePath);
+  const pdf = await generateDocument(file, item);
+  // const rotatedPdf = `${uploadDir}rotated_output_${item.barcode}.pdf`;
+  // await rotatePdf(pdf, rotatedPdf);
+
+  await getPrinterList(pdf, printer);
+  // remove all files inside uploads directory
+  await clearDirectory(uploadDir);
+};
 
 /**
  * Deletes all files in the specified directory asynchronously using `await`.
@@ -155,4 +165,5 @@ export default {
   getPrinterList,
   getFullPrinterList,
   generateFinishedGoodsSticker,
+  generateGroupPackSticker
 };

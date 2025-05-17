@@ -9,6 +9,7 @@ dotenv.config();
 const {
   generatePDF,
   generateFinishedGoodsSticker,
+  generateGroupPackSticker,
   clearDirectory,
   getFullPrinterList,
 } = helper;
@@ -44,6 +45,20 @@ app.post("/api/generate-barcodes", async (req, res) => {
         );
       }
     }
+
+    return res.status(200).json({ success: "barcodes generated successfully" });
+  } catch (error) {
+    console.error("generate barcodes error -->>", error);
+    return res.status(500).json({ error: error });
+  }
+});
+
+app.post("/api/generate-group-pack-sticker", async (req, res) => {
+  try {
+    const { stickerData, packingType, filePath, printer } = req?.body;
+
+    console.log("body -->>>", stickerData);
+    await generateGroupPackSticker(filePath, stickerData, printer);
 
     return res.status(200).json({ success: "barcodes generated successfully" });
   } catch (error) {
@@ -91,6 +106,7 @@ app.post("/api/generate-finished-goods-brand", async (req, res) => {
     return res.status(500).json({ error: error.message });
   }
 });
+
 
 app.listen(process.env.PORT, () =>
   console.log("RUNNING ON PORT " + process.env.PORT)
