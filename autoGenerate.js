@@ -54,7 +54,7 @@ function getFormattedDate() {
   return `${day}${month}${year}`;
 }
 function applyDefaultValues(data) {
-  return {
+  const ret = {
     barcode: data.barcode ?? '-',
     code: data.code ?? '-',
     weight: data.weightValue ?? '-',
@@ -63,7 +63,13 @@ function applyDefaultValues(data) {
     location: data.sourceName ?? '-',
     suppSubName: data.suppSubName ?? '-',
     date: getFormattedDate(),
-  };
+  }
+  if (!data?.customer?.code) {
+    ret['customer'] = {
+      code: '-',
+    };
+  }
+  return ret;
 }
 async function generateDocument(filePath, data) {
   try {
@@ -147,6 +153,15 @@ async function getDocumentFile(fileUrl) {
   return filePath;
 }
 async function finishedGoodsBrandPrint(fileUrl, data) {
+  try {
+    const filePath = await getDocumentFile(fileUrl);
+    return await generateDocument(filePath, data);
+  } catch (error) {
+    console.error({ error });
+    throw new Error(error.message);
+  }
+}
+async function groupPackPrint(fileUrl, data) {
   try {
     const filePath = await getDocumentFile(fileUrl);
     return await generateDocument(filePath, data);
@@ -261,9 +276,8 @@ function checkVariablesInData(documentVariables, data) {
     // return missing variables in error response
     throw {
       message: `Data is not complete.
-  ${missingVariables?.join(", ")} ${
-        missingVariables.length === 1 ? "is" : "are"
-      } missing in the data.`,
+  ${missingVariables?.join(", ")} ${missingVariables.length === 1 ? "is" : "are"
+        } missing in the data.`,
     };
   }
   return missingVariables;
@@ -346,7 +360,7 @@ async function generateBarcode(code, rotation = 0) {
 //   // return `data:image/png;base64,${pngBuffer.toString("base64")}`; // Embed as base64
 // }
 
- async function generateQRCode(code) {
+async function generateQRCode(code) {
   try {
     const png = await bwipjs.toBuffer({
       bcid: 'qrcode', // Barcode type
@@ -358,4 +372,4 @@ async function generateBarcode(code, rotation = 0) {
     throw error;
   }
 }
-export { finishedGoodsBrandPrint, generateDocument, getDocumentFile };
+export { finishedGoodsBrandPrint, groupPackPrint, generateDocument, getDocumentFile };
