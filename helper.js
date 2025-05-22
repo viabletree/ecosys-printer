@@ -19,13 +19,13 @@ function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-const getPrinterList = async (pdf, printer) => {
+const getPrinterList = async (pdf, printer, pages = "1") => {
   sleep(10000);
-
+  console.log('Calling getPrinterList');
   const options = {
     printer: printer,
-    pages: "1",
     scale: "noscale",
+    pages: pages,
   };
 
   try {
@@ -129,7 +129,7 @@ const generateGroupPackSticker = async (filePath, item, printer) => {
   // const rotatedPdf = `${uploadDir}rotated_output_${item.barcode}.pdf`;
   // await rotatePdf(pdf, rotatedPdf);
 
-  await getPrinterList(pdf, printer);
+  await getPrinterList(pdf, printer, "");
   // remove all files inside uploads directory
   await clearDirectory(uploadDir);
 };

@@ -86,10 +86,10 @@ async function generateDocument(filePath, data) {
       cmdDelimiter: ["{{", "}}"],
       data: updatedData,
       additionalJsContext: {
-        barcodeImage: async (_data, rotation = 90) => {
+        barcodeImage: async (_data, rotation = 90, height = 4) => {
           return {
             width: 1.5,
-            height: 4,
+            height: height,
             data: await generateBarcode(_data, rotation),
             extension: ".gif",
           };
@@ -152,10 +152,30 @@ async function getDocumentFile(fileUrl) {
   console.log(`File downloaded to ${filePath}`);
   return filePath;
 }
+
+function applyFGBrandDefaultValue(data) {
+  const ret = {
+    barcode: data.barcode ?? '-',
+    qty: data.qty ?? '-',
+    qtyUOM: data.qtyUOM ?? '-',
+  }
+  if (!data?.customer?.code) {
+    ret['customer'] = {
+      code: '-',
+    };
+  }
+  if (!data?.product?.alias) {
+    ret['product'] = {
+      alias: '-',
+    };
+  }
+  return ret;
+}
 async function finishedGoodsBrandPrint(fileUrl, data) {
   try {
     const filePath = await getDocumentFile(fileUrl);
-    return await generateDocument(filePath, data);
+    const _data = { ...data, ...applyFGBrandDefaultValue(data) };
+    return await generateDocument(filePath, _data);
   } catch (error) {
     console.error({ error });
     throw new Error(error.message);
@@ -219,10 +239,13 @@ function checkVariablesInData(documentVariables, data) {
     const variable = documentVariables[i];
 
     if (
-      variable.startsWith("EXEC") ||
-      variable.startsWith("End-FOR") ||
-      variable.startsWith("$idx") ||
-      variable.startsWith("IMAGE")
+      variable.startsWith('EXEC') ||
+      variable.startsWith('End-FOR') ||
+      variable.startsWith('$idx') ||
+      variable.startsWith('IF') ||
+      variable.startsWith('ELSE') ||
+      variable.startsWith('IMAGE') ||
+      variable.startsWith('ENDIF')
     ) {
       // Skip EXEC and End-FOR commands
       continue;
