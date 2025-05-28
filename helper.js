@@ -139,6 +139,7 @@ const generateGroupPackSticker = async (filePath, item, printer) => {
  * @param {string} directory - The path to the directory.
  */
 async function clearDirectory() {
+  return;
   const directory = uploadDir;
   if (!fs.existsSync(directory)) {
     console.error(`Directory does not exist: ${directory}`);
