@@ -10,6 +10,7 @@ import sharp from "sharp";
 
 import { exec } from "child_process";
 import _ from "lodash";
+import https from "https";
 
 const uploadDir = "./uploads";
 const isWin = process.platform === "win32";
