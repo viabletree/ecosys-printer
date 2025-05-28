@@ -26,6 +26,7 @@ const getPrinterList = async (pdf, printer, pages = "1") => {
     printer: printer,
     scale: "noscale",
     pages: pages,
+    win32: ["-print-to"],
   };
 
   try {
