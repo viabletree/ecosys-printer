@@ -137,9 +137,10 @@ async function getDocumentFile(fileUrl) {
   if (!fileUrl.endsWith(".docx") && !fileUrl.endsWith(".doc")) {
     throw new Error("File must be a .docx or .doc file");
   }
+  const agent = new https.Agent({ rejectUnauthorized: false });
 
   // Download the file from the provided URL
-  const response = await axios.get(fileUrl, { responseType: "arraybuffer" });
+  const response = await axios.get(fileUrl, { responseType: "arraybuffer", httpsAgent: agent });
   if (response.status !== 200) {
     throw new Error("Failed to download the file");
   }
