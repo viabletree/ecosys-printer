@@ -87,7 +87,7 @@ async function generateDocument(filePath, data) {
       cmdDelimiter: ["{{", "}}"],
       data: updatedData,
       additionalJsContext: {
-        barcodeImage: async (_data, rotation = 90, height = 4) => {
+        barcodeImage: async (_data, rotation = 90, height = 5) => {
           return {
             width: 1.5,
             height: height,
@@ -351,7 +351,7 @@ async function generateBarcode(code, rotation = 0) {
       {
         bcid: "code128", // Barcode type
         text: code,
-        scale: 4,
+        scale: 1,
         includetext: true, // Include the text under the barcode
       },
       async (err, png) => {
