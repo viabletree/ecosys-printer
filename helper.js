@@ -21,7 +21,7 @@ function sleep(ms) {
 
 const getPrinterList = async (pdf, printer, pages = "1") => {
   sleep(10000);
-  console.log('Calling getPrinterList');
+  console.log("Calling getPrinterList");
   const options = {
     printer: printer,
     scale: "noscale",
@@ -91,7 +91,9 @@ const generatePDF = async (
   sourceName,
   code,
   printer,
-  document
+  document,
+  inventoryDate,
+  warehouse
 ) => {
   const doc = await getDocumentFile(document);
   const pdf = await generateDocument(doc, {
@@ -104,6 +106,8 @@ const generatePDF = async (
     weightValue,
     code,
     sourceName,
+    inventoryDate,
+    warehouse,
   });
 
   // const rotatedPdf = `${uploadDir}output_${barcode}.pdf`; // `${uploadDir}rotated_output_${barcode}.pdf`;
@@ -125,6 +129,17 @@ const generateFinishedGoodsSticker = async (filePath, item, printer) => {
   await clearDirectory(uploadDir);
 };
 const generateGroupPackSticker = async (filePath, item, printer) => {
+  const file = await getDocumentFile(filePath);
+  const pdf = await generateDocument(file, item);
+  // const rotatedPdf = `${uploadDir}rotated_output_${item.barcode}.pdf`;
+  // await rotatePdf(pdf, rotatedPdf);
+
+  await getPrinterList(pdf, printer, "");
+  // remove all files inside uploads directory
+  await clearDirectory(uploadDir);
+};
+
+const generateInventoryBarcodeSticker = async (filePath, item, printer) => {
   const file = await getDocumentFile(filePath);
   const pdf = await generateDocument(file, item);
   // const rotatedPdf = `${uploadDir}rotated_output_${item.barcode}.pdf`;
@@ -167,5 +182,6 @@ export default {
   getPrinterList,
   getFullPrinterList,
   generateFinishedGoodsSticker,
-  generateGroupPackSticker
+  generateGroupPackSticker,
+  generateInventoryBarcodeSticker,
 };

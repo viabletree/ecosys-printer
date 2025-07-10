@@ -10,6 +10,7 @@ const {
   generatePDF,
   generateFinishedGoodsSticker,
   generateGroupPackSticker,
+  generateInventoryBarcodeSticker,
   clearDirectory,
   getFullPrinterList,
 } = helper;
@@ -31,17 +32,19 @@ app.post("/api/generate-barcodes", async (req, res) => {
     if (items?.length > 0) {
       for (let item of items) {
         await generatePDF(
-          item.barcode,
-          item.score,
-          item.intCode,
-          item.suppSubName,
-          item.suppLocation,
-          item.blWeight,
-          item.value,
-          item.order.orderSource.name,
-          item.code,
+          item?.barcode,
+          item?.score,
+          item?.intCode,
+          item?.suppSubName,
+          item?.suppLocation,
+          item?.blWeight,
+          item?.value,
+          item?.order?.orderSource?.name,
+          item?.code,
           printer,
-          filePath
+          filePath,
+          item?.inventoryDate,
+          item?.warehouse
         );
       }
     }
@@ -59,6 +62,20 @@ app.post("/api/generate-group-pack-sticker", async (req, res) => {
 
     console.log("body -->>>", stickerData);
     await generateGroupPackSticker(filePath, stickerData, printer);
+
+    return res.status(200).json({ success: "barcodes generated successfully" });
+  } catch (error) {
+    console.error("generate barcodes error -->>", error);
+    return res.status(500).json({ error: error });
+  }
+});
+
+app.post("/api/generate-inventory-barcode-sticker", async (req, res) => {
+  try {
+    const { stickerData, packingType, filePath, printer } = req?.body;
+
+    console.log("body -->>>", stickerData);
+    await generateInventoryBarcodeSticker(filePath, stickerData, printer);
 
     return res.status(200).json({ success: "barcodes generated successfully" });
   } catch (error) {
@@ -106,7 +123,6 @@ app.post("/api/generate-finished-goods-brand", async (req, res) => {
     return res.status(500).json({ error: error.message });
   }
 });
-
 
 app.listen(process.env.PORT, () =>
   console.log("RUNNING ON PORT " + process.env.PORT)
