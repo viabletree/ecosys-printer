@@ -48,26 +48,26 @@ async function convertDocxToPdfLibreOffice(docxPath, outputDir) {
 }
 function getFormattedDate() {
   const now = new Date();
-  const day = String(now.getDate()).padStart(2, '0');
-  const month = String(now.getMonth() + 1).padStart(2, '0'); // Months are 0-based
+  const day = String(now.getDate()).padStart(2, "0");
+  const month = String(now.getMonth() + 1).padStart(2, "0"); // Months are 0-based
   const year = now.getFullYear();
 
   return `${day}${month}${year}`;
 }
 function applyDefaultValues(data) {
   const ret = {
-    barcode: data.barcode ?? '-',
-    code: data.code ?? '-',
-    weight: data.weightValue ?? '-',
-    intCode: data.intCode ?? '-',
-    score: data.score ?? '7',
-    location: data.sourceName ?? '-',
-    suppSubName: data.suppSubName ?? '-',
+    barcode: data.barcode ?? "-",
+    code: data.code ?? "-",
+    weight: data.weightValue ?? "-",
+    intCode: data.intCode ?? "-",
+    score: data.score ?? "",
+    location: data.sourceName ?? "-",
+    suppSubName: data.suppSubName ?? "-",
     date: getFormattedDate(),
-  }
+  };
   if (!data?.customer?.code) {
-    ret['customer'] = {
-      code: '-',
+    ret["customer"] = {
+      code: "-",
     };
   }
   return ret;
@@ -133,7 +133,7 @@ async function generateDocument(filePath, data) {
 }
 
 async function getDocumentFile(fileUrl) {
-  console.log('calling getDocumentFile', fileUrl);
+  console.log("calling getDocumentFile", fileUrl);
   // Validate fileUrl
   if (!fileUrl.endsWith(".docx") && !fileUrl.endsWith(".doc")) {
     throw new Error("File must be a .docx or .doc file");
@@ -141,7 +141,10 @@ async function getDocumentFile(fileUrl) {
   const agent = new https.Agent({ rejectUnauthorized: false });
 
   // Download the file from the provided URL
-  const response = await axios.get(fileUrl, { responseType: "arraybuffer", httpsAgent: agent });
+  const response = await axios.get(fileUrl, {
+    responseType: "arraybuffer",
+    httpsAgent: agent,
+  });
   if (response.status !== 200) {
     throw new Error("Failed to download the file");
   }
@@ -157,18 +160,18 @@ async function getDocumentFile(fileUrl) {
 
 function applyFGBrandDefaultValue(data) {
   const ret = {
-    barcode: data.barcode ?? '-',
-    qty: data.qty ?? '-',
-    qtyUOM: data.qtyUOM ?? '-',
-  }
+    barcode: data.barcode ?? "-",
+    qty: data.qty ?? "-",
+    qtyUOM: data.qtyUOM ?? "-",
+  };
   if (!data?.customer?.code) {
-    ret['customer'] = {
-      code: '-',
+    ret["customer"] = {
+      code: "-",
     };
   }
   if (!data?.product?.alias) {
-    ret['product'] = {
-      alias: '-',
+    ret["product"] = {
+      alias: "-",
     };
   }
   return ret;
@@ -241,13 +244,13 @@ function checkVariablesInData(documentVariables, data) {
     const variable = documentVariables[i];
 
     if (
-      variable.startsWith('EXEC') ||
-      variable.startsWith('End-FOR') ||
-      variable.startsWith('$idx') ||
-      variable.startsWith('IF') ||
-      variable.startsWith('ELSE') ||
-      variable.startsWith('IMAGE') ||
-      variable.startsWith('ENDIF')
+      variable.startsWith("EXEC") ||
+      variable.startsWith("End-FOR") ||
+      variable.startsWith("$idx") ||
+      variable.startsWith("IF") ||
+      variable.startsWith("ELSE") ||
+      variable.startsWith("IMAGE") ||
+      variable.startsWith("ENDIF")
     ) {
       // Skip EXEC and End-FOR commands
       continue;
@@ -301,8 +304,9 @@ function checkVariablesInData(documentVariables, data) {
     // return missing variables in error response
     throw {
       message: `Data is not complete.
-  ${missingVariables?.join(", ")} ${missingVariables.length === 1 ? "is" : "are"
-        } missing in the data.`,
+  ${missingVariables?.join(", ")} ${
+        missingVariables.length === 1 ? "is" : "are"
+      } missing in the data.`,
     };
   }
   return missingVariables;
@@ -388,13 +392,18 @@ async function generateBarcode(code, rotation = 0) {
 async function generateQRCode(code) {
   try {
     const png = await bwipjs.toBuffer({
-      bcid: 'qrcode', // Barcode type
+      bcid: "qrcode", // Barcode type
       text: code,
     });
-    return png.toString('base64');
+    return png.toString("base64");
   } catch (error) {
-    console.error('Error generating barcode:', error);
+    console.error("Error generating barcode:", error);
     throw error;
   }
 }
-export { finishedGoodsBrandPrint, groupPackPrint, generateDocument, getDocumentFile };
+export {
+  finishedGoodsBrandPrint,
+  groupPackPrint,
+  generateDocument,
+  getDocumentFile,
+};
