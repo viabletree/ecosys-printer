@@ -3,6 +3,9 @@ import cors from "cors";
 import helper from "./helper.js";
 import dotenv from "dotenv";
 import { finishedGoodsBrandPrint } from "./autoGenerate.js";
+import pkg from 'pdf-to-printer';
+const { getPrinters } = pkg;
+getPrinters().then(console.log);
 
 dotenv.config();
 
@@ -55,7 +58,9 @@ app.post("/api/generate-barcodes", async (req, res) => {
     return res.status(500).json({ error: error });
   }
 });
-
+app.get('/hello', (req, res) => {
+    return res.status(200).json({ success: "barcodes generated successfully" });
+})
 app.post("/api/generate-group-pack-sticker", async (req, res) => {
   try {
     const { stickerData, packingType, filePath, printer } = req?.body;

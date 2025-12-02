@@ -88,19 +88,21 @@ async function generateDocument(filePath, data) {
       data: updatedData,
       additionalJsContext: {
         barcodeImage: async (_data, rotation = 90, height = 5) => {
+          const base64 = await generateBarcode(_data, rotation);
           return {
             width: 1.5,
-            height: height,
-            data: await generateBarcode(_data, rotation),
-            extension: ".gif",
+            height,
+            data: base64,
+            extension: ".png",
           };
         },
+
         qrcodeImage: async (data) => {
           return {
             width: 1,
             height: 1,
             data: await generateQRCode(data),
-            extension: ".gif",
+            extension: ".png",
           };
         },
       },
@@ -349,35 +351,35 @@ async function extractDocVariables(docxPath) {
   }
 }
 
-async function generateBarcode(code, rotation = 0) {
-  return new Promise((resolve, reject) => {
-    bwipjs.toBuffer(
-      {
-        bcid: "code128", // Barcode type
-        text: code,
-        scale: 1,
-        includetext: true, // Include the text under the barcode
-      },
-      async (err, png) => {
-        if (err) {
-          console.error("Error generating barcode:", err.message);
-          reject(err);
-        } else {
-          // resolve(png.toString("base64")); // Embed as base64
-          // resolve(`data:image/png;base64,${png.toString("base64")}`); // Embed as base64
-          try {
-            // Rotate barcode image using sharp
-            const rotatedBuffer = await sharp(png).rotate(rotation).toBuffer();
-            resolve(rotatedBuffer.toString("base64")); // Return rotated barcode as base64
-          } catch (rotationError) {
-            console.error("Error rotating barcode:", rotationError.message);
-            reject(rotationError);
-          }
-        }
-      }
-    );
-  });
-}
+// async function generateBarcode(code, rotation = 0) {
+//   return new Promise((resolve, reject) => {
+//     bwipjs.toBuffer(
+//       {
+//         bcid: "code128", // Barcode type
+//         text: code,
+//         scale: 1,
+//         includetext: true, // Include the text under the barcode
+//       },
+//       async (err, png) => {
+//         if (err) {
+//           console.error("Error generating barcode:", err.message);
+//           reject(err);
+//         } else {
+//           // resolve(png.toString("base64")); // Embed as base64
+//           // resolve(`data:image/png;base64,${png.toString("base64")}`); // Embed as base64
+//           try {
+//             // Rotate barcode image using sharp
+//             const rotatedBuffer = await sharp(png).rotate(rotation).toBuffer();
+//             resolve(rotatedBuffer.toString("base64")); // Return rotated barcode as base64
+//           } catch (rotationError) {
+//             console.error("Error rotating barcode:", rotationError.message);
+//             reject(rotationError);
+//           }
+//         }
+//       }
+//     );
+//   });
+// }
 
 // async function generateQRCode(code) {
 //   const pngBuffer = qrcode.imageSync(code, {
@@ -389,18 +391,131 @@ async function generateBarcode(code, rotation = 0) {
 //   // return `data:image/png;base64,${pngBuffer.toString("base64")}`; // Embed as base64
 // }
 
-async function generateQRCode(code) {
-  try {
-    const png = await bwipjs.toBuffer({
-      bcid: "qrcode", // Barcode type
-      text: code,
-    });
-    return png.toString("base64");
-  } catch (error) {
-    console.error("Error generating barcode:", error);
-    throw error;
-  }
+async function generateBarcode(code, rotation = 0) {
+  return new Promise((resolve, reject) => {
+    bwipjs.toBuffer(
+      {
+        bcid: "code128",
+        text: code,
+        scale: 2,
+        includetext: true,
+        textxalign: "justify",
+        textsize: 14,
+        textyoffset: 10,
+        // textfont: "Helvetica", // optional
+      },
+      async (err, pngBuffer) => {
+        if (err) return reject(err);
+
+        try {
+          const rotated = await sharp(pngBuffer)
+            .rotate(rotation)
+            .resize({ width: 300 }) // ensure fixed width
+            .png() // force PNG output
+            .toBuffer();
+
+          resolve(rotated.toString("base64"));
+        } catch (e) {
+          reject(e);
+        }
+      }
+    );
+  });
 }
+
+// async function generateQRCode(code) {
+//   try {
+//     const png = await bwipjs.toBuffer({
+//       bcid: "qrcode", // Barcode type
+//       text: code,
+//     });
+//     return png.toString("base64");
+//   } catch (error) {
+//     console.error("Error generating barcode:", error);
+//     throw error;
+//   }
+// }
+
+async function generateQRCode(text) {
+  return new Promise(async (resolve, reject) => {
+    try {
+      const pngBuffer = await bwipjs.toBuffer({
+        bcid: "qrcode",
+        text,
+        scale: 3,
+        includetext: false,
+      });
+
+      const final = await sharp(pngBuffer)
+        .png() // ensure PNG output
+        .toBuffer();
+
+      resolve(final.toString("base64"));
+    } catch (error) {
+      console.error("QR Code generation failed:", error);
+      reject(error);
+    }
+  });
+}
+
+async function generateBarcodeSVG(code, rotation = 0) {
+  return new Promise((resolve, reject) => {
+    bwipjs.toBuffer(
+      {
+        bcid: "code128",
+        text: code,
+        scale: 3, // not pixels but improves SVG viewBox sizing
+        height: 20,
+        includetext: false, // set true if you need human-readable text
+        paddingwidth: 8,
+        paddingheight: 4,
+        xml: true, // <-- important: request SVG output
+      },
+      (err, svgBuf) => {
+        if (err) return reject(err);
+
+        let svg = svgBuf.toString("utf8");
+
+        // Optional: rotate SVG by adding transform if rotation != 0
+        if (rotation && rotation % 360 !== 0) {
+          // Wrap SVG content in an outer SVG with transform to rotate
+          // This is a safe way to rotate without rasterizing
+          const wrapped = `
+          <svg xmlns="http://www.w3.org/2000/svg">
+            <g transform="rotate(${rotation} 0 0)">
+              ${svg}
+            </g>
+          </svg>
+        `;
+          svg = wrapped;
+        }
+
+        // Return raw SVG string (docx-template accepts string for .svg)
+        resolve(svg);
+      }
+    );
+  });
+}
+
+async function generateQRCodeSVG(code) {
+  return new Promise((resolve, reject) => {
+    bwipjs.toBuffer(
+      {
+        bcid: "qrcode",
+        text: code,
+        scale: 3,
+        paddingwidth: 2,
+        paddingheight: 2,
+        xml: true,
+      },
+      (err, svgBuf) => {
+        if (err) return reject(err);
+        resolve(svgBuf.toString("utf8"));
+      }
+    );
+  });
+}
+
 export {
   finishedGoodsBrandPrint,
   groupPackPrint,
