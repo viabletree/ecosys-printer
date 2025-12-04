@@ -23,9 +23,8 @@ const getPrinterList = async (pdf, printer, pages = "1") => {
   sleep(10000);
   console.log("Calling getPrinterList");
   const options = {
-    // printer: printer,
-      printer: "Zebra S4M (203 dpi) - ZPL (Copy 1)",
-
+    printer: printer,
+    // printer: "Zebra S4M (203 dpi) - ZPL (Copy 1)",
     scale: "noscale",
     pages: pages,
     win32: ["-print-to"],
@@ -117,7 +116,7 @@ const generatePDF = async (
 
   await getPrinterList(pdf, printer);
   // remove all files inside uploads directory
-  // await clearDirectory(uploadDir);
+  await clearDirectory(uploadDir);
 };
 
 const generateFinishedGoodsSticker = async (filePath, item, printer) => {

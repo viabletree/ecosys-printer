@@ -87,20 +87,20 @@ async function generateDocument(filePath, data) {
       cmdDelimiter: ["{{", "}}"],
       data: updatedData,
       additionalJsContext: {
-        barcodeImage: async (_data, rotation = 90, height = 5) => {
+        barcodeImage: async (_data, rotation = 90, height = 5, width = 1.5) => {
           const base64 = await generateBarcode(_data, rotation);
           return {
-            width: 1.5,
+            width,
             height,
             data: base64,
             extension: ".png",
           };
         },
 
-        qrcodeImage: async (data) => {
+        qrcodeImage: async (data, width = 1, height = 1) => {
           return {
-            width: 1,
-            height: 1,
+            width,
+            height,
             data: await generateQRCode(data),
             extension: ".png",
           };
