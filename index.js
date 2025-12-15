@@ -39,6 +39,7 @@ app.post("/api/generate-barcodes", async (req, res) => {
         barcodes.push(barcode)
         data = rest;
       }
+      console.time("generatePDF");
       await generatePDF(
         printer,
         filePath,
@@ -60,6 +61,7 @@ app.post("/api/generate-barcodes", async (req, res) => {
         // item?.sailingDate,
         // item?.product,
       );
+      console.timeEnd("generatePDF");
     }
 
     return res.status(200).json({ success: "barcodes generated successfully" });
