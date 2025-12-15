@@ -1,4 +1,5 @@
 import fs from "fs";
+import fsPromise from "fs/promises";
 import path from "path";
 import axios from "axios";
 import mammoth from "mammoth";
@@ -71,68 +72,68 @@ function applyDefaultValues(data) {
   }
   return ret;
 }
+
 async function generateDocument(filePath, data) {
   try {
-    // Read the downloaded file
-    const template = fs.readFileSync(filePath);
+    console.log("Generating document from:", filePath);
 
-    const _data = { ...data, ...applyDefaultValues(data) };
-    // Process variables and create updated data
-    console.log({_data})
-    const updatedData = await processDocxVariables(filePath, _data);
+    // Load template asynchronously
+    const template = await fsPromise.readFile(filePath);
 
-    // Generate the report
+    // Merge defaults only once
+    const mergedData = { ...data, ...applyDefaultValues(data) };
+
+    // Process docx variables
+    const updatedData = await processDocxVariables(filePath, mergedData);
+
+    // Generate DOCX buffer
     const buffer = await createReport({
       template,
       cmdDelimiter: ["{{", "}}"],
       data: updatedData,
-      additionalJsContext: {
-        barcodeImage: async (_data, rotation = 90, height = 5, width = 1.5) => {
-          const base64 = await generateBarcode(_data, rotation);
-          return {
-            width,
-            height,
-            data: base64,
-            extension: ".png",
-          };
-        },
-
-        qrcodeImage: async (data, width = 1, height = 1) => {
-          return {
-            width,
-            height,
-            data: await generateQRCode(data),
-            extension: ".png",
-          };
-        },
-      },
       failFast: false,
+      additionalJsContext: {
+        barcodeImage: async (_code, rotation = 90, height = 5, width = 1.5) => ({
+          width,
+          height,
+          data: await generateBarcode(_code, rotation),
+          extension: ".png",
+        }),
+
+        qrcodeImage: async (val, width = 1, height = 1) => ({
+          width,
+          height,
+          data: await generateQRCode(val),
+          extension: ".png",
+        }),
+      },
     });
 
-    const downloadedFileName = `${crypto.randomUUID()}-${filePath
-      .split("/")
-      .pop()}`;
-    // Write the generated file to disk
-    const newFileName = sanitizeFileName(
-      `${crypto.randomUUID()}-${downloadedFileName}`
-    );
-    const newPdfName = `${newFileName}.pdf`;
-    const outputPath = `${uploadDir}/${newFileName}.docx`;
-    console.log("Creating docx file from template and variables");
-    fs.writeFileSync(outputPath, buffer);
+    // Build unique file names
+    const baseName = sanitizeFileName(`${crypto.randomUUID()}-${path.basename(filePath)}`);
+    const docxPath = path.join(uploadDir, `${baseName}.docx`);
+    const pdfPath = path.join(uploadDir, `${baseName}.pdf`);
 
-    // Convert to PDF
-    console.log("Converting docx to pdf");
-    await convertDocxToPdfLibreOffice(outputPath, `${uploadDir}`);
-    console.log("Removing docx file from server");
-    // fs.unlinkSync(outputPath);
+    // Save DOCX
+    console.log("Saving generated DOCX:", docxPath);
+    await fsPromise.writeFile(docxPath, buffer);
 
-    return `${uploadDir}/${newPdfName}`;
-    // return `${outputPath}`;
-  } catch (e) {
-    throw new Error(e.message);
+    // Convert DOCX → PDF
+    console.log("Converting DOCX to PDF...");
+    await convertDocxToPdfLibreOffice(docxPath, uploadDir);
+
+    // Remove DOCX (optional)
+    // await fsPromise.unlink(docxPath);
+
+    console.log("PDF generated:", pdfPath);
+    return pdfPath;
+
+  } catch (err) {
+    console.error("generateDocument ERROR:", err);
+    throw new Error(err.message || "Document generation failed");
   }
 }
+
 
 async function getDocumentFile(fileUrl) {
   console.log("calling getDocumentFile", fileUrl);
