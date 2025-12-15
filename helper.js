@@ -20,14 +20,16 @@ function sleep(ms) {
 }
 
 const getPrinterList = async (pdf, printer, pages = "1") => {
-  sleep(10000);
+  // sleep(10000);
   console.log("Calling getPrinterList");
+  // const printerFor = printer;
+  const printerFor = "Zebra S4M (203 dpi) - ZPL (Copy 1)"
   const options = {
-    printer: printer,
-    // printer: "Zebra S4M (203 dpi) - ZPL (Copy 1)",
+    // printer: printer,
+    printer: printerFor,
     scale: "noscale",
     pages: pages,
-    win32: ["-print-to"],
+    win32: ["-print-to", printerFor, '-silent'],
   };
 
   try {
@@ -82,39 +84,22 @@ async function createBarcode(barCode) {
 }
 
 const generatePDF = async (
-  barcode,
-  score,
-  intCode,
-  suppSubName,
-  suppLocation,
-  blWeight,
-  weightValue,
-  sourceName,
-  code,
   printer,
   document,
-  inventoryDate,
-  warehouse
+  data,
+  barcodes,
 ) => {
   const doc = await getDocumentFile(document);
-  const pdf = await generateDocument(doc, {
-    barcode,
-    score,
-    intCode,
-    suppSubName,
-    suppLocation,
-    blWeight,
-    weightValue,
-    code,
-    sourceName,
-    inventoryDate,
-    warehouse,
-  });
+  if (barcodes.length > 0) {
+    for (const bCode of barcodes) {
+      const pdf = await generateDocument(doc, { barcode: bCode, ...data});
+      await getPrinterList(pdf, printer);
+    }
+  }
 
   // const rotatedPdf = `${uploadDir}output_${barcode}.pdf`; // `${uploadDir}rotated_output_${barcode}.pdf`;
   // await rotatePdf(pdf, rotatedPdf);
 
-  await getPrinterList(pdf, printer);
   // remove all files inside uploads directory
   await clearDirectory(uploadDir);
 };

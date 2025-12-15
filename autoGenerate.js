@@ -7,7 +7,6 @@ import { createReport } from "docx-templates";
 import qrcode from "qr-image";
 import bwipjs from "bwip-js";
 import sharp from "sharp";
-
 import { exec } from "child_process";
 import _ from "lodash";
 import https from "https";
@@ -79,6 +78,7 @@ async function generateDocument(filePath, data) {
 
     const _data = { ...data, ...applyDefaultValues(data) };
     // Process variables and create updated data
+    console.log({_data})
     const updatedData = await processDocxVariables(filePath, _data);
 
     // Generate the report
@@ -125,7 +125,7 @@ async function generateDocument(filePath, data) {
     console.log("Converting docx to pdf");
     await convertDocxToPdfLibreOffice(outputPath, `${uploadDir}`);
     console.log("Removing docx file from server");
-    fs.unlinkSync(outputPath);
+    // fs.unlinkSync(outputPath);
 
     return `${uploadDir}/${newPdfName}`;
     // return `${outputPath}`;

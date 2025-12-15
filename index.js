@@ -5,7 +5,7 @@ import dotenv from "dotenv";
 import { finishedGoodsBrandPrint } from "./autoGenerate.js";
 import pkg from 'pdf-to-printer';
 const { getPrinters } = pkg;
-getPrinters().then(console.log);
+// getPrinters().then(console.log);
 
 dotenv.config();
 
@@ -31,25 +31,35 @@ app.post("/api/generate-barcodes", async (req, res) => {
     console.log("body -->>>", body);
 
     const { items, filePath, printer, isBarcode } = body;
-
+    const barcodes = []
+    let data;
     if (items?.length > 0) {
       for (let item of items) {
-        await generatePDF(
-          item?.barcode,
-          item?.score,
-          item?.intCode,
-          item?.suppSubName,
-          item?.suppLocation,
-          item?.blWeight,
-          item?.value,
-          item?.order?.orderSource?.name,
-          item?.code,
-          printer,
-          filePath,
-          item?.inventoryDate,
-          item?.warehouse
-        );
+        const { barcode, ...rest } = item;
+        barcodes.push(barcode)
+        data = rest;
       }
+      await generatePDF(
+        printer,
+        filePath,
+        data,
+        barcodes
+        // item?.barcode,
+        // item?.score,
+        // item?.intCode,
+        // item?.suppSubName,
+        // item?.suppLocation,
+        // item?.blWeight,
+        // item?.value,
+        // item?.order?.orderSource?.name,
+        // item?.code,
+        // item?.inventoryDate,
+        // item?.warehouse,
+        // item?.order?.orderSource,
+        // item?.order?.orderSupplier,
+        // item?.sailingDate,
+        // item?.product,
+      );
     }
 
     return res.status(200).json({ success: "barcodes generated successfully" });
