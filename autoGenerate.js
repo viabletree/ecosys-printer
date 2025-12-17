@@ -10,7 +10,9 @@ import bwipjs from "bwip-js";
 import sharp from "sharp";
 import { exec } from "child_process";
 import _ from "lodash";
+import PQueue from "p-queue";
 import https from "https";
+import { spawn } from "child_process";
 
 const uploadDir = "./uploads";
 const isWin = process.platform === "win32";
@@ -23,29 +25,55 @@ function sanitizeFileName(fileName) {
     .toLowerCase(); // Convert to lower case (optional)
 }
 
-async function convertDocxToPdfLibreOffice(docxPath, outputDir) {
-  // Returns a promise that resolves or rejects based on the execution result
-  const cmd = isWin
-    ? '"C:\\Program Files\\LibreOffice\\program\\soffice.exe" '
-    : "libreoffice ";
-  const command = `${cmd} --headless --convert-to pdf "${docxPath}" --outdir "${outputDir}"`;
-  console.log("command", command);
-  return new Promise((resolve, reject) => {
-    exec(command, (error, stdout, stderr) => {
-      if (error) {
-        console.error(`Error converting DOCX to PDF: ${stderr}`);
-        return reject(new Error(stderr));
-      }
-      console.log(
-        `PDF generated at: ${path.join(
+export const libreQueue = new PQueue({
+  concurrency: 1, // 🔴 1 ya max 2
+  intervalCap: 2,
+  interval: 1000,
+});
+
+export function convertDocxToPdfLibreOffice(docxPath, outputDir) {
+  return libreQueue.add(() => {
+    return new Promise((resolve, reject) => {
+      const sofficePath = isWin
+        ? "C:\\Program Files\\LibreOffice\\program\\soffice.exe"
+        : "libreoffice";
+
+      const args = [
+        "--headless",
+        "--nologo",
+        "--nolockcheck",
+        "--nodefault",
+        "--nofirststartwizard",
+        "--norestore",
+        "--convert-to",
+        "pdf",
+        docxPath,
+        "--outdir",
+        outputDir,
+      ];
+
+      const process = spawn(sofficePath, args, {
+        stdio: "ignore", // ⚡ fastest
+      });
+
+      process.on("error", reject);
+
+      process.on("close", (code) => {
+        if (code !== 0) {
+          return reject(new Error(`LibreOffice exited with code ${code}`));
+        }
+
+        const pdfPath = path.join(
           outputDir,
           path.basename(docxPath, ".docx") + ".pdf"
-        )}`
-      );
-      resolve();
+        );
+
+        resolve(pdfPath);
+      });
     });
   });
 }
+
 function getFormattedDate() {
   const now = new Date();
   const day = String(now.getDate()).padStart(2, "0");
@@ -73,19 +101,35 @@ function applyDefaultValues(data) {
   return ret;
 }
 
+const templateCache = new Map();
+
+async function getTemplate(filePath) {
+  if (!templateCache.has(filePath)) {
+    const buffer = await fsPromise.readFile(filePath);
+    templateCache.set(filePath, buffer);
+  }
+  return templateCache.get(filePath);
+}
+
 async function generateDocument(filePath, data) {
   try {
     console.log("Generating document from:", filePath);
 
     // Load template asynchronously
-    const template = await fsPromise.readFile(filePath);
+    // const template = await fsPromise.readFile(filePath);
+
+    // 1️⃣ Load template from cache
+    const template = await getTemplate(filePath);
 
     // Merge defaults only once
     const mergedData = { ...data, ...applyDefaultValues(data) };
 
-    // Process docx variables
-    const updatedData = await processDocxVariables(filePath, mergedData);
+    console.log("Merged Data:", mergedData);
 
+    // Process docx variables
+    console.time("processDocxVariables");
+    const updatedData = await processDocxVariables(filePath, mergedData);
+    console.timeEnd("processDocxVariables");
     // Generate DOCX buffer
     const buffer = await createReport({
       template,
@@ -93,7 +137,12 @@ async function generateDocument(filePath, data) {
       data: updatedData,
       failFast: false,
       additionalJsContext: {
-        barcodeImage: async (_code, rotation = 90, height = 5, width = 1.5) => ({
+        barcodeImage: async (
+          _code,
+          rotation = 90,
+          height = 5,
+          width = 1.5
+        ) => ({
           width,
           height,
           data: await generateBarcode(_code, rotation),
@@ -110,7 +159,9 @@ async function generateDocument(filePath, data) {
     });
 
     // Build unique file names
-    const baseName = sanitizeFileName(`${crypto.randomUUID()}-${path.basename(filePath)}`);
+    const baseName = sanitizeFileName(
+      `${crypto.randomUUID()}-${path.basename(filePath)}`
+    );
     const docxPath = path.join(uploadDir, `${baseName}.docx`);
     const pdfPath = path.join(uploadDir, `${baseName}.pdf`);
 
@@ -127,13 +178,11 @@ async function generateDocument(filePath, data) {
 
     console.log("PDF generated:", pdfPath);
     return pdfPath;
-
   } catch (err) {
     console.error("generateDocument ERROR:", err);
     throw new Error(err.message || "Document generation failed");
   }
 }
-
 
 async function getDocumentFile(fileUrl) {
   console.log("calling getDocumentFile", fileUrl);

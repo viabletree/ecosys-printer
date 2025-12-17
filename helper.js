@@ -23,13 +23,13 @@ const getPrinterList = async (pdf, printer, pages = "1") => {
   // sleep(10000);
   console.log("Calling getPrinterList");
   // const printerFor = printer;
-  const printerFor = "Zebra S4M (203 dpi) - ZPL (Copy 1)"
+  const printerFor = "Zebra S4M (203 dpi) - ZPL (Copy 1)";
   const options = {
     // printer: printer,
     printer: printerFor,
     scale: "noscale",
     pages: pages,
-    win32: ["-print-to", printerFor, '-silent'],
+    win32: ["-print-to", printerFor, "-silent"],
   };
 
   try {
@@ -83,19 +83,34 @@ async function createBarcode(barCode) {
   });
 }
 
-const generatePDF = async (
-  printer,
-  document,
-  data,
-  barcodes,
-) => {
+const generatePDF = async (printer, document, data, barcodes) => {
   const doc = await getDocumentFile(document);
-  if (barcodes.length > 0) {
-    for (const bCode of barcodes) {
-      const pdf = await generateDocument(doc, { barcode: bCode, ...data});
+  // const BATCH_SIZE = Math.ceil(barcodes.length * 0.1); // 10%
+  // OR fixed size:
+  const BATCH_SIZE = 10;
+
+  for (let i = 0; i < barcodes.length; i += BATCH_SIZE) {
+    const batch = barcodes.slice(i, i + BATCH_SIZE);
+
+    // 1️⃣ Generate PDFs in parallel (batch level)
+    const pdfs = await Promise.all(
+      batch.map((bCode) =>
+        generateDocument(doc, {
+          barcode: bCode,
+          ...data,
+        })
+      )
+    );
+
+    // 2️⃣ Print sequentially (printer safe)
+    for (const pdf of pdfs) {
       await getPrinterList(pdf, printer);
     }
+
+    console.log(`Processed batch ${Math.floor(i / BATCH_SIZE) + 1}`);
   }
+
+  // await getPrinterList(pdf, printer);
 
   // const rotatedPdf = `${uploadDir}output_${barcode}.pdf`; // `${uploadDir}rotated_output_${barcode}.pdf`;
   // await rotatePdf(pdf, rotatedPdf);
