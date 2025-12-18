@@ -3,6 +3,8 @@ import PDFDocument from "pdfkit";
 import fs from "fs";
 import { rotatePdf } from "./rotatePDF.js";
 import pkg from "pdf-to-printer";
+import AdmZip from "adm-zip";
+const fsPromise = fs.promises;
 import path from "path";
 import qrcode from "qr-image";
 import dotenv from "dotenv";
@@ -22,8 +24,8 @@ function sleep(ms) {
 const getPrinterList = async (pdf, printer, pages = "1") => {
   // sleep(10000);
   console.log("Calling getPrinterList");
-  // const printerFor = printer;
-  const printerFor = "Zebra S4M (203 dpi) - ZPL (Copy 1)";
+  const printerFor = printer;
+  // const printerFor = "Zebra S4M (203 dpi) - ZPL (Copy 1)";
   const options = {
     // printer: printer,
     printer: printerFor,
@@ -81,6 +83,39 @@ async function createBarcode(barCode) {
       }
     );
   });
+}
+
+async function extractZip(zipPath) {
+  const extractDir = path.join(
+    path.dirname(zipPath),
+    path.basename(zipPath, ".zip")
+  );
+
+  // ensure folder exists
+  await fsPromise.mkdir(extractDir, { recursive: true });
+
+  const zip = new AdmZip(zipPath);
+  zip.extractAllTo(extractDir, true);
+
+  return extractDir;
+}
+
+async function getAllFiles(dir) {
+  let files = [];
+
+  const entries = await fsPromise.readdir(dir, { withFileTypes: true });
+
+  for (const entry of entries) {
+    const fullPath = path.join(dir, entry.name);
+
+    if (entry.isDirectory()) {
+      files = files.concat(await getAllFiles(fullPath));
+    } else {
+      files.push(fullPath);
+    }
+  }
+
+  return files;
 }
 
 const generatePDF = async (printer, document, data, barcodes) => {
@@ -155,25 +190,40 @@ const generateInventoryBarcodeSticker = async (filePath, item, printer) => {
  * Deletes all files in the specified directory asynchronously using `await`.
  * @param {string} directory - The path to the directory.
  */
-async function clearDirectory() {
-  // return;
-  const directory = uploadDir;
+
+async function clearDirectory(directory) {
   if (!fs.existsSync(directory)) {
     console.error(`Directory does not exist: ${directory}`);
     return;
   }
 
   try {
-    const files = await fs.promises.readdir(directory); // Read directory contents
-    for (const file of files) {
-      if (file === ".gitignore") continue; // Skip the .gitignore file
-      const filePath = path.join(directory, file);
-      await fs.promises.unlink(filePath); // Asynchronously delete each file
-      console.log(`Deleted file: ${filePath}`);
+    const entries = await fsPromise.readdir(directory, {
+      withFileTypes: true,
+    });
+
+    for (const entry of entries) {
+      if (entry.name === ".gitignore") continue;
+
+      const fullPath = path.join(directory, entry.name);
+
+      if (entry.isDirectory()) {
+        // ✅ delete folder recursively
+        await fsPromise.rm(fullPath, {
+          recursive: true,
+          force: true,
+        });
+        console.log(`Deleted folder: ${fullPath}`);
+      } else {
+        // ✅ delete file
+        await fsPromise.unlink(fullPath);
+        console.log(`Deleted file: ${fullPath}`);
+      }
     }
-    console.log(`All files in '${directory}' have been deleted.`);
+
+    console.log(`Directory cleared: ${directory}`);
   } catch (err) {
-    console.error(`Error while clearing directory '${directory}':`, err);
+    console.error(`Error clearing directory '${directory}':`, err);
   }
 }
 
@@ -185,4 +235,6 @@ export default {
   generateFinishedGoodsSticker,
   generateGroupPackSticker,
   generateInventoryBarcodeSticker,
+  extractZip,
+  getAllFiles,
 };

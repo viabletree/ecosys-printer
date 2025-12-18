@@ -2,8 +2,12 @@ import express from "express";
 import cors from "cors";
 import helper from "./helper.js";
 import dotenv from "dotenv";
-import { finishedGoodsBrandPrint } from "./autoGenerate.js";
-import pkg from 'pdf-to-printer';
+import {
+  finishedGoodsBrandPrint,
+  getDocumentFile,
+  downloadZipFile,
+} from "./autoGenerate.js";
+import pkg from "pdf-to-printer";
 const { getPrinters } = pkg;
 // getPrinters().then(console.log);
 
@@ -16,6 +20,9 @@ const {
   generateInventoryBarcodeSticker,
   clearDirectory,
   getFullPrinterList,
+  extractZip,
+  getAllFiles,
+  getPrinterList,
 } = helper;
 
 const uploadDir = process.env.UPLOAD_DIR;
@@ -31,38 +38,62 @@ app.post("/api/generate-barcodes", async (req, res) => {
     console.log("body -->>>", body);
 
     const { items, filePath, printer, isBarcode } = body;
-    const barcodes = []
-    let data;
-    if (items?.length > 0) {
-      for (let item of items) {
-        const { barcode, ...rest } = item;
-        barcodes.push(barcode)
-        data = rest;
-      }
-      console.time("generatePDF");
-      await generatePDF(
-        printer,
-        filePath,
-        data,
-        barcodes
-        // item?.barcode,
-        // item?.score,
-        // item?.intCode,
-        // item?.suppSubName,
-        // item?.suppLocation,
-        // item?.blWeight,
-        // item?.value,
-        // item?.order?.orderSource?.name,
-        // item?.code,
-        // item?.inventoryDate,
-        // item?.warehouse,
-        // item?.order?.orderSource,
-        // item?.order?.orderSupplier,
-        // item?.sailingDate,
-        // item?.product,
-      );
-      console.timeEnd("generatePDF");
+
+    const csv = items.map((item) => item).join(",");
+
+    const fileUrl = `${process.env.FILE_BASE_URL}/download/zip/${csv}`;
+
+    const zip = await downloadZipFile(fileUrl);
+
+    console.log("downloaded zip file -->>", zip);
+    // 2️⃣ Extract ZIP
+    const extractedDir = await extractZip(zip);
+    console.log("Extracted to:", extractedDir);
+    // 3️⃣ Collect all file paths
+    const files = await getAllFiles(extractedDir);
+    console.log("Files inside zip:", files);
+
+    // 4️⃣ (Optional) Print files
+    for (const file of files) {
+      await getPrinterList(file, printer);
     }
+
+    await clearDirectory(uploadDir);
+
+    // Now Extract zip and collect path of all files inside extracted folder
+
+    // const barcodes = []
+    // let data;
+    // if (items?.length > 0) {
+    //   for (let item of items) {
+    //     const { barcode, ...rest } = item;
+    //     barcodes.push(barcode)
+    //     data = rest;
+    //   }
+    //   console.time("generatePDF");
+    //   await generatePDF(
+    //     printer,
+    //     filePath,
+    //     data,
+    //     barcodes
+    //     // item?.barcode,
+    //     // item?.score,
+    //     // item?.intCode,
+    //     // item?.suppSubName,
+    //     // item?.suppLocation,
+    //     // item?.blWeight,
+    //     // item?.value,
+    //     // item?.order?.orderSource?.name,
+    //     // item?.code,
+    //     // item?.inventoryDate,
+    //     // item?.warehouse,
+    //     // item?.order?.orderSource,
+    //     // item?.order?.orderSupplier,
+    //     // item?.sailingDate,
+    //     // item?.product,
+    //   );
+    //   console.timeEnd("generatePDF");
+    // }
 
     return res.status(200).json({ success: "barcodes generated successfully" });
   } catch (error) {
@@ -70,9 +101,9 @@ app.post("/api/generate-barcodes", async (req, res) => {
     return res.status(500).json({ error: error });
   }
 });
-app.get('/hello', (req, res) => {
-    return res.status(200).json({ success: "barcodes generated successfully" });
-})
+app.get("/hello", (req, res) => {
+  return res.status(200).json({ success: "barcodes generated successfully" });
+});
 app.post("/api/generate-group-pack-sticker", async (req, res) => {
   try {
     const { stickerData, packingType, filePath, printer } = req?.body;

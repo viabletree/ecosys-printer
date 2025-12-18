@@ -210,6 +210,24 @@ async function getDocumentFile(fileUrl) {
   return filePath;
 }
 
+async function downloadZipFile(fileUrl) {
+  console.log("calling downloadZipFile", fileUrl);
+  const agent = new https.Agent({ rejectUnauthorized: false });
+  // Download the file from the provided URL
+  const response = await axios.get(fileUrl, {
+    responseType: "arraybuffer",
+    httpsAgent: agent,
+  });
+  if (response.status !== 200) {
+    throw new Error("Failed to download the file");
+  }
+  const downloadedFileName = `all`;
+  const filePath = `${uploadDir}/${sanitizeFileName(downloadedFileName)}.zip`;
+  fs.writeFileSync(filePath, response.data);
+  console.log(`File downloaded to ${filePath}`);
+  return filePath;
+}
+
 function applyFGBrandDefaultValue(data) {
   const ret = {
     barcode: data.barcode ?? "-",
@@ -571,4 +589,5 @@ export {
   groupPackPrint,
   generateDocument,
   getDocumentFile,
+  downloadZipFile,
 };
