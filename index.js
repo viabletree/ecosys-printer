@@ -39,61 +39,61 @@ app.post("/api/generate-barcodes", async (req, res) => {
 
     const { items, filePath, printer, isBarcode } = body;
 
-    const csv = items.map((item) => item).join(",");
+    // const csv = items.map((item) => item).join(",");
 
-    const fileUrl = `${process.env.FILE_BASE_URL}/download/zip/${csv}`;
+    // const fileUrl = `${process.env.FILE_BASE_URL}/download/zip/${csv}`;
 
-    const zip = await downloadZipFile(fileUrl);
+    // const zip = await downloadZipFile(fileUrl);
 
-    console.log("downloaded zip file -->>", zip);
-    // 2️⃣ Extract ZIP
-    const extractedDir = await extractZip(zip);
-    console.log("Extracted to:", extractedDir);
-    // 3️⃣ Collect all file paths
-    const files = await getAllFiles(extractedDir);
-    console.log("Files inside zip:", files);
+    // console.log("downloaded zip file -->>", zip);
+    // // 2️⃣ Extract ZIP
+    // const extractedDir = await extractZip(zip);
+    // console.log("Extracted to:", extractedDir);
+    // // 3️⃣ Collect all file paths
+    // const files = await getAllFiles(extractedDir);
+    // console.log("Files inside zip:", files);
 
-    // 4️⃣ (Optional) Print files
-    for (const file of files) {
-      await getPrinterList(file, printer);
-    }
+    // // 4️⃣ (Optional) Print files
+    // for (const file of files) {
+    //   await getPrinterList(file, printer);
+    // }
 
-    await clearDirectory(uploadDir);
+    // await clearDirectory(uploadDir);
 
     // Now Extract zip and collect path of all files inside extracted folder
 
-    // const barcodes = []
-    // let data;
-    // if (items?.length > 0) {
-    //   for (let item of items) {
-    //     const { barcode, ...rest } = item;
-    //     barcodes.push(barcode)
-    //     data = rest;
-    //   }
-    //   console.time("generatePDF");
-    //   await generatePDF(
-    //     printer,
-    //     filePath,
-    //     data,
-    //     barcodes
-    //     // item?.barcode,
-    //     // item?.score,
-    //     // item?.intCode,
-    //     // item?.suppSubName,
-    //     // item?.suppLocation,
-    //     // item?.blWeight,
-    //     // item?.value,
-    //     // item?.order?.orderSource?.name,
-    //     // item?.code,
-    //     // item?.inventoryDate,
-    //     // item?.warehouse,
-    //     // item?.order?.orderSource,
-    //     // item?.order?.orderSupplier,
-    //     // item?.sailingDate,
-    //     // item?.product,
-    //   );
-    //   console.timeEnd("generatePDF");
-    // }
+    const barcodes = [];
+    let data;
+    if (items?.length > 0) {
+      for (let item of items) {
+        const { barcode, ...rest } = item;
+        barcodes.push(barcode);
+        data = rest;
+      }
+      console.time("generatePDF");
+      await generatePDF(
+        printer,
+        filePath,
+        data,
+        barcodes
+        // item?.barcode,
+        // item?.score,
+        // item?.intCode,
+        // item?.suppSubName,
+        // item?.suppLocation,
+        // item?.blWeight,
+        // item?.value,
+        // item?.order?.orderSource?.name,
+        // item?.code,
+        // item?.inventoryDate,
+        // item?.warehouse,
+        // item?.order?.orderSource,
+        // item?.order?.orderSupplier,
+        // item?.sailingDate,
+        // item?.product,
+      );
+      console.timeEnd("generatePDF");
+    }
 
     return res.status(200).json({ success: "barcodes generated successfully" });
   } catch (error) {
