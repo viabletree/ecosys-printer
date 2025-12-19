@@ -39,6 +39,17 @@ app.post("/api/generate-barcodes", async (req, res) => {
 
     const { items, filePath, printer, isBarcode } = body;
 
+    // // now i am only testing with uploads/merge.pdf
+
+    // const pdfPath = "uploads/merge.pdf";
+
+    // const numberofpages = 4;
+
+    // for (let i = 0; i < numberofpages; i++) {
+    //   await getPrinterList(pdfPath, printer, (i + 1).toString());
+    // }
+    // await getPrinterList(pdfPath, printer);
+
     // const csv = items.map((item) => item).join(",");
 
     // const fileUrl = `${process.env.FILE_BASE_URL}/download/zip/${csv}`;
