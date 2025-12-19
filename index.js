@@ -37,26 +37,34 @@ app.post("/api/generate-barcodes", async (req, res) => {
 
     console.log("body -->>>", body);
 
-    const { items, filePath, printer, isBarcode } = body;
+    const { items, filePath, printer, isBarcode, pdf } = body;
 
-    const csv = items.map((item) => item).join(",");
+    // const csv = items.map((item) => item).join(",");
 
-    const fileUrl = `${process.env.FILE_BASE_URL}/download/zip/${csv}`;
+    const fileUrl = `${process.env.FILE_BASE_URL}/download/${pdf}`;
 
-    const zip = await downloadZipFile(fileUrl);
+    // const zip = await downloadZipFile(fileUrl);
 
-    console.log("downloaded zip file -->>", zip);
-    // 2️⃣ Extract ZIP
-    const extractedDir = await extractZip(zip);
-    console.log("Extracted to:", extractedDir);
-    // 3️⃣ Collect all file paths
-    const files = await getAllFiles(extractedDir);
-    console.log("Files inside zip:", files);
+    const pdfPath = await getDocumentFile(fileUrl);
+
+    console.log("downloaded pdf file -->>", pdfPath);
+
+    for (let i = 0; i < items.length; i++) {
+      await getPrinterList(pdfPath, printer, (i + 1).toString());
+    }
+
+    // console.log("downloaded zip file -->>", zip);
+    // // 2️⃣ Extract ZIP
+    // const extractedDir = await extractZip(zip);
+    // console.log("Extracted to:", extractedDir);
+    // // 3️⃣ Collect all file paths
+    // const files = await getAllFiles(extractedDir);
+    // console.log("Files inside zip:", files);
 
     // 4️⃣ (Optional) Print files
-    for (const file of files) {
-      await getPrinterList(file, printer);
-    }
+    // for (const file of files) {
+    //   await getPrinterList(file, printer);
+    // }
 
     await clearDirectory(uploadDir);
 

@@ -187,9 +187,9 @@ async function generateDocument(filePath, data) {
 async function getDocumentFile(fileUrl) {
   console.log("calling getDocumentFile", fileUrl);
   // Validate fileUrl
-  if (!fileUrl.endsWith(".docx") && !fileUrl.endsWith(".doc")) {
-    throw new Error("File must be a .docx or .doc file");
-  }
+  // if (!fileUrl.endsWith(".docx") && !fileUrl.endsWith(".doc")) {
+  //   throw new Error("File must be a .docx or .doc file");
+  // }
   const agent = new https.Agent({ rejectUnauthorized: false });
 
   // Download the file from the provided URL
