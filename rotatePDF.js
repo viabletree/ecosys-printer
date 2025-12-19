@@ -21,10 +21,8 @@ async function rotatePdf(inputPath, outputPath) {
     const pdfBytes = await pdfDoc.save();
 
     fs.writeFileSync(outputPath, pdfBytes);
-
-    console.log("Rotated PDF saved to", outputPath);
   } catch (error) {
-    console.error('Error', error);
+    console.error("Error", error);
   }
 }
 

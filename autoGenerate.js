@@ -82,7 +82,7 @@ function getFormattedDate() {
 
   return `${day}${month}${year}`;
 }
-function applyDefaultValues(data) {
+export function applyDefaultValues(data) {
   const ret = {
     barcode: data.barcode ?? "-",
     code: data.code ?? "-",
@@ -113,22 +113,13 @@ async function getTemplate(filePath) {
 
 async function generateDocument(filePath, data) {
   try {
-    console.log("Generating document from:", filePath);
-
-    // Load template asynchronously
-    // const template = await fsPromise.readFile(filePath);
-
     // 1️⃣ Load template from cache
     const template = await getTemplate(filePath);
 
-    // Merge defaults only once
     const mergedData = { ...data, ...applyDefaultValues(data) };
-
-    console.log("Merged Data:", mergedData);
-
     // Process docx variables
     console.time("processDocxVariables");
-    const updatedData = await processDocxVariables(filePath, mergedData);
+    const updatedData = await processDocxVariables(filePath, data);
     console.timeEnd("processDocxVariables");
     // Generate DOCX buffer
     const buffer = await createReport({
@@ -166,17 +157,14 @@ async function generateDocument(filePath, data) {
     const pdfPath = path.join(uploadDir, `${baseName}.pdf`);
 
     // Save DOCX
-    console.log("Saving generated DOCX:", docxPath);
     await fsPromise.writeFile(docxPath, buffer);
 
     // Convert DOCX → PDF
-    console.log("Converting DOCX to PDF...");
     await convertDocxToPdfLibreOffice(docxPath, uploadDir);
 
     // Remove DOCX (optional)
     // await fsPromise.unlink(docxPath);
 
-    console.log("PDF generated:", pdfPath);
     return pdfPath;
   } catch (err) {
     console.error("generateDocument ERROR:", err);
@@ -185,11 +173,10 @@ async function generateDocument(filePath, data) {
 }
 
 async function getDocumentFile(fileUrl) {
-  console.log("calling getDocumentFile", fileUrl);
   // Validate fileUrl
-  // if (!fileUrl.endsWith(".docx") && !fileUrl.endsWith(".doc")) {
-  //   throw new Error("File must be a .docx or .doc file");
-  // }
+  if (!fileUrl.endsWith(".docx") && !fileUrl.endsWith(".doc")) {
+    throw new Error("File must be a .docx or .doc file");
+  }
   const agent = new https.Agent({ rejectUnauthorized: false });
 
   // Download the file from the provided URL
@@ -206,12 +193,10 @@ async function getDocumentFile(fileUrl) {
     .pop()}`;
   const filePath = `${uploadDir}/${sanitizeFileName(downloadedFileName)}.docx`;
   fs.writeFileSync(filePath, response.data);
-  console.log(`File downloaded to ${filePath}`);
   return filePath;
 }
 
 async function downloadZipFile(fileUrl) {
-  console.log("calling downloadZipFile", fileUrl);
   const agent = new https.Agent({ rejectUnauthorized: false });
   // Download the file from the provided URL
   const response = await axios.get(fileUrl, {
@@ -224,7 +209,6 @@ async function downloadZipFile(fileUrl) {
   const downloadedFileName = `all`;
   const filePath = `${uploadDir}/${sanitizeFileName(downloadedFileName)}.zip`;
   fs.writeFileSync(filePath, response.data);
-  console.log(`File downloaded to ${filePath}`);
   return filePath;
 }
 
@@ -316,11 +300,17 @@ function checkVariablesInData(documentVariables, data) {
     if (
       variable.startsWith("EXEC") ||
       variable.startsWith("End-FOR") ||
+      variable.startsWith("END-FOR") ||
       variable.startsWith("$idx") ||
+      variable.startsWith("$length") ||
       variable.startsWith("IF") ||
       variable.startsWith("ELSE") ||
       variable.startsWith("IMAGE") ||
-      variable.startsWith("ENDIF")
+      variable.startsWith("=") ||
+      variable.startsWith("INS") ||
+      variable.startsWith("ENDIF") ||
+      variable.startsWith("END-IF") ||
+      variable.startsWith("PAGE-BREAK")
     ) {
       // Skip EXEC and End-FOR commands
       continue;

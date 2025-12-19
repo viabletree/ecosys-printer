@@ -21,7 +21,7 @@ function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-const getPrinterList = async (pdf, printer, pages = "1") => {
+const getPrinterList = async (pdf, printer, pages) => {
   // sleep(10000);
   console.log("Calling getPrinterList");
   const printerFor = printer;
@@ -30,7 +30,7 @@ const getPrinterList = async (pdf, printer, pages = "1") => {
     // printer: printer,
     printer: printerFor,
     scale: "noscale",
-    pages: pages,
+    pages: pages || undefined,
     win32: ["-print-to", printerFor, "-silent"],
   };
 
