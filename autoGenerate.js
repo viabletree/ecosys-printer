@@ -459,8 +459,9 @@ async function generateBarcode(code, rotation = 0) {
         includetext: true,
         textxalign: "justify",
         textsize: 14,
+        // textsize: 18,
         textyoffset: 10,
-        // textfont: "Helvetica", // optional
+        // textfont: "Helvetica-Bold", // optional
       },
       async (err, pngBuffer) => {
         if (err) return reject(err);
