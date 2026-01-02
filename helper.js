@@ -9,7 +9,11 @@ import path from "path";
 import qrcode from "qr-image";
 import dotenv from "dotenv";
 import slugify from "slugify";
-import { generateDocument, getDocumentFile } from "./autoGenerate.js";
+import {
+  applyDefaultValues,
+  generateDocument,
+  getDocumentFile,
+} from "./autoGenerate.js";
 
 dotenv.config();
 
@@ -156,7 +160,12 @@ const generatePDF = async (printer, document, data, barcodes) => {
 
 const generateFinishedGoodsSticker = async (filePath, item, printer) => {
   const file = await getDocumentFile(filePath);
-  const pdf = await generateDocument(file, item);
+  const printData = {
+    ...item,
+    ...applyDefaultValues(item),
+  };
+  console.log("Print Data:", printData);
+  const pdf = await generateDocument(file, printData);
   // const rotatedPdf = `${uploadDir}rotated_output_${item.barcode}.pdf`;
   // await rotatePdf(pdf, rotatedPdf);
 
