@@ -128,12 +128,11 @@ app.post("/api/generate-finished-goods-brand", async (req, res) => {
     if (item.numberOfCopies) {
       copies = item.numberOfCopies;
     }
+    const pdf = await finishedGoodsBrandPrint(
+      item.templatePath,
+      item.templateData,
+    );
     for (let i = 0; i < copies; i++) {
-      const pdf = await finishedGoodsBrandPrint(
-        item.templatePath,
-        item.templateData
-      );
-
       await getFullPrinterList(pdf);
     }
     await clearDirectory(uploadDir);
@@ -146,5 +145,5 @@ app.post("/api/generate-finished-goods-brand", async (req, res) => {
 });
 
 app.listen(process.env.PORT, () =>
-  console.log("RUNNING ON PORT " + process.env.PORT)
+  console.log("RUNNING ON PORT " + process.env.PORT),
 );
