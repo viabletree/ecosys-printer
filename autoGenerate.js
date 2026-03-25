@@ -65,7 +65,7 @@ export function convertDocxToPdfLibreOffice(docxPath, outputDir) {
 
         const pdfPath = path.join(
           outputDir,
-          path.basename(docxPath, ".docx") + ".pdf"
+          path.basename(docxPath, ".docx") + ".pdf",
         );
 
         resolve(pdfPath);
@@ -132,7 +132,7 @@ async function generateDocument(filePath, data) {
           _code,
           rotation = 90,
           height = 5,
-          width = 1.5
+          width = 1.5,
         ) => ({
           width,
           height,
@@ -151,7 +151,7 @@ async function generateDocument(filePath, data) {
 
     // Build unique file names
     const baseName = sanitizeFileName(
-      `${crypto.randomUUID()}-${path.basename(filePath)}`
+      `${crypto.randomUUID()}-${path.basename(filePath)}`,
     );
     const docxPath = path.join(uploadDir, `${baseName}.docx`);
     const pdfPath = path.join(uploadDir, `${baseName}.pdf`);
@@ -365,8 +365,8 @@ function checkVariablesInData(documentVariables, data) {
     throw {
       message: `Data is not complete.
   ${missingVariables?.join(", ")} ${
-        missingVariables.length === 1 ? "is" : "are"
-      } missing in the data.`,
+    missingVariables.length === 1 ? "is" : "are"
+  } missing in the data.`,
     };
   }
   return missingVariables;
@@ -477,7 +477,7 @@ async function generateBarcode(code, rotation = 0) {
         } catch (e) {
           reject(e);
         }
-      }
+      },
     );
   });
 }
@@ -551,7 +551,7 @@ async function generateBarcodeSVG(code, rotation = 0) {
 
         // Return raw SVG string (docx-template accepts string for .svg)
         resolve(svg);
-      }
+      },
     );
   });
 }
@@ -570,7 +570,7 @@ async function generateQRCodeSVG(code) {
       (err, svgBuf) => {
         if (err) return reject(err);
         resolve(svgBuf.toString("utf8"));
-      }
+      },
     );
   });
 }
@@ -581,4 +581,6 @@ export {
   generateDocument,
   getDocumentFile,
   downloadZipFile,
+  // applyDefaultValues,
+  applyFGBrandDefaultValue,
 };

@@ -144,6 +144,39 @@ app.post("/api/generate-finished-goods-brand", async (req, res) => {
   }
 });
 
+app.post("/api/generate-finished-goods-brand-v2", async (req, res) => {
+  try {
+    const item = req?.body;
+
+    if (!item.numberOfCopies) {
+      item.numberOfCopies = 1;
+    }
+
+    const templateData = [];
+    for (let i = 0; i < item.numberOfCopies; i++) {
+      templateData.push({
+        ...item.templateData,
+        ...applyFGBrandDefaultValue(item.templateData),
+        isLast: i === item.numberOfCopies - 1 ? true : false,
+      });
+    }
+    const pdf = await finishedGoodsBrandPrint(item.templatePath, {
+      data: templateData,
+    });
+    await getPrinterList(pdf, item?.printer);
+
+    // for (let i = 0; i < item.numberOfCopies; i++) {
+    //   await getFullPrinterList(pdf);
+    // }
+    await clearDirectory(uploadDir);
+
+    return res.status(200).json({ success: "barcodes generated successfully" });
+  } catch (error) {
+    console.error("generate barcodes error -->>", error);
+    return res.status(500).json({ error: error.message });
+  }
+});
+
 app.listen(process.env.PORT, () =>
   console.log("RUNNING ON PORT " + process.env.PORT),
 );
