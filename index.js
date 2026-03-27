@@ -8,6 +8,7 @@ import {
   generateDocument,
   downloadZipFile,
   applyDefaultValues,
+  applyFGBrandDefaultValue,
 } from "./autoGenerate.js";
 import pkg from "pdf-to-printer";
 const { getPrinters } = pkg;
@@ -49,6 +50,74 @@ app.post("/api/generate-barcodes", async (req, res) => {
         isLast: index === barcodes.length - 1 ? true : false,
       };
     });
+
+    console.time("downloadDocFile");
+    const filePathDoc = await getDocumentFile(filePath);
+    console.timeEnd("downloadDocFile");
+
+    console.time("generateDocument");
+    const pdfPath = await generateDocument(filePathDoc, {
+      data: manipulatedData,
+    });
+    console.timeEnd("generateDocument");
+
+    console.time("printDocuments");
+    // for (let i = 0; i < items; i++) {
+    //   await getPrinterList(pdfPath, printer, (i + 1).toString());
+    // }
+    await getPrinterList(pdfPath, printer);
+    console.timeEnd("printDocuments");
+
+    await clearDirectory(uploadDir);
+
+    return res.status(200).json({ success: "barcodes generated successfully" });
+  } catch (error) {
+    console.error("generate barcodes error -->>", error);
+    return res.status(500).json({ error: error });
+  }
+});
+
+app.post("/api/generate-barcodes-v2", async (req, res) => {
+  try {
+    const body = req?.body;
+
+    const { items, filePath, printer, isBarcode, assets } = body;
+
+    const { barcodes, data, numbersOfCopies } = assets;
+
+    // const manipulatedData = barcodes.map((item, index) => {
+    //   return {
+    //     ...data,
+    //     ...applyDefaultValues(data),
+    //     barcode: item,
+    //     isLast: index === barcodes.length - 1 ? true : false,
+    //   };
+    // });
+
+    const manipulatedData = [];
+    for (let i = 0; i < barcodes.length; i++) {
+      const item = barcodes[i];
+      if (numbersOfCopies > 0) {
+        for (let j = 0; j < numbersOfCopies; j++) {
+          manipulatedData.push({
+            ...data,
+            ...applyDefaultValues(data),
+            barcode: item,
+            isLast:
+              i === barcodes.length - 1 && j === numbersOfCopies - 1
+                ? true
+                : false,
+          });
+        }
+      } else {
+        manipulatedData.push({
+          ...data,
+          ...applyDefaultValues(data),
+          barcode: item,
+          isLast: i === barcodes.length - 1 ? true : false,
+        });
+      }
+    }
 
     console.time("downloadDocFile");
     const filePathDoc = await getDocumentFile(filePath);
@@ -144,7 +213,7 @@ app.post("/api/generate-finished-goods-brand", async (req, res) => {
   }
 });
 
-app.post("/api/generate-finished-goods-brand-v2", async (req, res) => {
+app.post("/api/generate-stock-brand-v2", async (req, res) => {
   try {
     const item = req?.body;
 
