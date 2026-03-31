@@ -225,6 +225,7 @@ function applyFGBrandDefaultValue(data) {
   }
   if (!data?.product?.alias) {
     ret["product"] = {
+      ...data?.product,
       alias: "-",
     };
   }
