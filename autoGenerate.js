@@ -344,11 +344,18 @@ function checkVariablesInData(documentVariables, data) {
         const loopData = loopContext.loopData; // e.g., array of orderProducts
 
         const normalizedVariable = variable.replace(`$${loopItem}.`, ""); // Remove the loop variable prefix
-        loopData.forEach((item) => {
-          if (!_.has(item, normalizedVariable)) {
-            missingVariables.push(variable); // Add missing variable if not found in loop item
-          }
-        });
+        // loopData.forEach((item) => {
+        //   if (!_.has(item, normalizedVariable)) {
+        //     missingVariables.push(variable); // Add missing variable if not found in loop item
+        //   }
+        // });
+        const isMissing = loopData.some(
+          (item) => !_.has(item, normalizedVariable)
+        );
+
+        if (isMissing) {
+          missingVariables.push(variable);
+        }
       }
       continue;
     }
@@ -365,9 +372,8 @@ function checkVariablesInData(documentVariables, data) {
     // return missing variables in error response
     throw {
       message: `Data is not complete.
-  ${missingVariables?.join(", ")} ${
-    missingVariables.length === 1 ? "is" : "are"
-  } missing in the data.`,
+  ${missingVariables?.join(", ")} ${missingVariables.length === 1 ? "is" : "are"
+        } missing in the data.`,
     };
   }
   return missingVariables;
