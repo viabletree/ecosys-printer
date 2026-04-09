@@ -220,14 +220,33 @@ app.post("/api/generate-stock-brand-v2", async (req, res) => {
     if (!item.numberOfCopies) {
       item.numberOfCopies = 1;
     }
+    if (!item.barcodes) {
+      item.barcodes = item.templateData?.barcodes;
+    }
 
     const templateData = [];
-    for (let i = 0; i < item.numberOfCopies; i++) {
-      templateData.push({
-        ...item.templateData,
-        ...applyFGBrandDefaultValue(item.templateData),
-        isLast: i === item.numberOfCopies - 1 ? true : false,
-      });
+    for (let i = 0; i < item.barcodes.length; i++) {
+      const b = item.barcodes[i];
+      if (item.numberOfCopies > 0) {
+        for (let j = 0; j < item.numberOfCopies; j++) {
+          templateData.push({
+            ...item.templateData,
+            ...applyFGBrandDefaultValue(item.templateData),
+            barcode: b,
+            isLast:
+              i === item.barcodes.length - 1 && j === item.numberOfCopies - 1
+                ? true
+                : false,
+          });
+        }
+      } else {
+        templateData.push({
+          ...item.templateData,
+          ...applyFGBrandDefaultValue(item.templateData),
+          barcode: b,
+          isLast: i === item.barcodes.length - 1 ? true : false,
+        });
+      }
     }
     const pdf = await finishedGoodsBrandPrint(item.templatePath, {
       data: templateData,
