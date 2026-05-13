@@ -116,7 +116,7 @@ async function generateDocument(filePath, data) {
     // 1️⃣ Load template from cache
     const template = await getTemplate(filePath);
 
-    const mergedData = { ...data, ...applyDefaultValues(data) };
+    // const mergedData = { ...data, ...applyDefaultValues(data) };
     // Process docx variables
     console.time("processDocxVariables");
     const updatedData = await processDocxVariables(filePath, data);
