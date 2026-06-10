@@ -79,74 +79,74 @@ export function convertDocxToPdfLibreOffice(docxPath, outputDir) {
   });
 }
 
-let libreProcess = null;
+// let libreProcess = null;
 
-const sofficePath =
-  process.platform === "win32"
-    ? "C:\\Program Files\\LibreOffice\\program\\soffice.exe"
-    : "libreoffice";
+// const sofficePath =
+//   process.platform === "win32"
+//     ? "C:\\Program Files\\LibreOffice\\program\\soffice.exe"
+//     : "libreoffice";
 
-const libreProfile =
-  process.platform === "win32"
-    ? "file:///C:/temp/libreoffice-profile"
-    : "file:///tmp/libreoffice-profile";
+// const libreProfile =
+//   process.platform === "win32"
+//     ? "file:///C:/temp/libreoffice-profile"
+//     : "file:///tmp/libreoffice-profile";
 
 
-let isStarting = false;
+// let isStarting = false;
 
-export async function startLibreOfficeServer() {
-  if (
-    libreProcess &&
-    !libreProcess.killed &&
-    libreProcess.exitCode === null
-  ) {
-    return;
-  }
+// export async function startLibreOfficeServer() {
+//   if (
+//     libreProcess &&
+//     !libreProcess.killed &&
+//     libreProcess.exitCode === null
+//   ) {
+//     return;
+//   }
 
-  if (isStarting) return;
+//   if (isStarting) return;
 
-  isStarting = true;
+//   isStarting = true;
 
-  const args = [
-    "--headless",
-    "--invisible",
-    "--nologo",
-    "--nodefault",
-    "--nofirststartwizard",
-    "--norestore",
-    "--nolockcheck",
-    "--accept=socket,host=127.0.0.1,port=2002;urp;",
-    `-env:UserInstallation=${libreProfile}`,
-  ];
+//   const args = [
+//     "--headless",
+//     "--invisible",
+//     "--nologo",
+//     "--nodefault",
+//     "--nofirststartwizard",
+//     "--norestore",
+//     "--nolockcheck",
+//     "--accept=socket,host=127.0.0.1,port=2002;urp;",
+//     `-env:UserInstallation=${libreProfile}`,
+//   ];
 
-  libreProcess = spawn(sofficePath, args, {
-    stdio: "ignore",
-    windowsHide: true,
-  });
+//   libreProcess = spawn(sofficePath, args, {
+//     stdio: "ignore",
+//     windowsHide: true,
+//   });
 
-  libreProcess.on("spawn", () => {
-    console.log("LibreOffice started");
-  });
+//   libreProcess.on("spawn", () => {
+//     console.log("LibreOffice started");
+//   });
 
-  libreProcess.on("exit", (code) => {
-    console.warn("LibreOffice stopped", code);
-    libreProcess = null;
+//   libreProcess.on("exit", (code) => {
+//     console.warn("LibreOffice stopped", code);
+//     libreProcess = null;
 
-    // auto restart
-    setTimeout(() => {
-      startLibreOfficeServer().catch(console.error);
-    }, 1000);
-  });
+//     // auto restart
+//     setTimeout(() => {
+//       startLibreOfficeServer().catch(console.error);
+//     }, 1000);
+//   });
 
-  libreProcess.on("error", (err) => {
-    console.error("LibreOffice error:", err);
-    libreProcess = null;
-  });
+//   libreProcess.on("error", (err) => {
+//     console.error("LibreOffice error:", err);
+//     libreProcess = null;
+//   });
 
-  await new Promise((r) => setTimeout(r, 2000));
+//   await new Promise((r) => setTimeout(r, 2000));
 
-  isStarting = false;
-}
+//   isStarting = false;
+// }
 
 async function clearOldFiles2(
   dir,
@@ -326,7 +326,7 @@ async function generateDocument(filePath, data) {
     await fsPromise.writeFile(docxPath, buffer);
 
     // Convert DOCX → PDF
-    await convertNewDocxToPdfLibreOffice(docxPath, uploadDir);
+    await convertDocxToPdfLibreOffice(docxPath, uploadDir);
 
     // Remove DOCX (optional)
     // await fsPromise.unlink(docxPath);
@@ -534,7 +534,7 @@ async function generateDocument2(
       "convertToPdf"
     );
 
-    await convertNewDocxToPdfLibreOffice(
+    await convertDocxToPdfLibreOffice(
       docxPath,
       uploadDir
     );
