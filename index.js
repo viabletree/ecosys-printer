@@ -7,7 +7,9 @@ import {
   finishedGoodsBrandPrint2,
   clearOldFiles2,
   getDocumentFile,
+  getDocumentFile2,
   generateDocument,
+  generateDocument2,
   downloadZipFile,
   applyDefaultValues,
   applyFGBrandDefaultValue,
@@ -128,11 +130,11 @@ app.post("/api/generate-barcodes-v2", async (req, res) => {
     }
 
     console.time("downloadDocFile");
-    const filePathDoc = await getDocumentFile(filePath);
+    const filePathDoc = await getDocumentFile2(filePath);
     console.timeEnd("downloadDocFile");
 
     console.time("generateDocument");
-    const pdfPath = await generateDocument(filePathDoc, {
+    const pdfPath = await generateDocument2(filePathDoc, {
       data: manipulatedData,
     });
     console.timeEnd("generateDocument");
