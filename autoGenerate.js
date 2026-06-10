@@ -150,7 +150,7 @@ export async function startLibreOfficeServer() {
 
 async function clearOldFiles2(
   dir,
-  olderThanMinutes = 30,
+  olderThanMinutes = 1440,
 ) {
   const files = await fsPromise.readdir(dir);
 

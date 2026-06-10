@@ -41,8 +41,8 @@ app.use(express.json({ limit: "50mb" }));
 app.use(cors());
 
 setInterval(async () => {
-  await clearOldFiles2(uploadDir, 100);
-}, 100 * 60 * 1000);
+  await clearOldFiles2(uploadDir, 24 * 60);
+}, 60 * 60 * 1000); 
 
 app.post("/api/generate-barcodes", async (req, res) => {
   try {
