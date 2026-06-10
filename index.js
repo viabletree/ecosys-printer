@@ -4,6 +4,8 @@ import helper from "./helper.js";
 import dotenv from "dotenv";
 import {
   finishedGoodsBrandPrint,
+  finishedGoodsBrandPrint2,
+  clearOldFiles2,
   getDocumentFile,
   generateDocument,
   downloadZipFile,
@@ -35,6 +37,10 @@ const app = express();
 app.use(express.urlencoded({ limit: "50mb", extended: true }));
 app.use(express.json({ limit: "50mb" }));
 app.use(cors());
+
+setInterval(async () => {
+  await clearOldFiles2(uploadDir, 100);
+}, 100 * 60 * 1000);
 
 app.post("/api/generate-barcodes", async (req, res) => {
   try {
@@ -138,7 +144,7 @@ app.post("/api/generate-barcodes-v2", async (req, res) => {
     await getPrinterList(pdfPath, printer);
     console.timeEnd("printDocuments");
 
-    await clearDirectory(uploadDir);
+    // await clearDirectory(uploadDir);
 
     return res.status(200).json({ success: "barcodes generated successfully" });
   } catch (error) {
@@ -250,7 +256,7 @@ app.post("/api/generate-stock-brand-v2", async (req, res) => {
         });
       }
     }
-    const pdf = await finishedGoodsBrandPrint(item.templatePath, {
+    const pdf = await finishedGoodsBrandPrint2(item.templatePath, {
       data: templateData,
     });
     await getPrinterList(pdf, item?.printer);
@@ -258,7 +264,7 @@ app.post("/api/generate-stock-brand-v2", async (req, res) => {
     // for (let i = 0; i < item.numberOfCopies; i++) {
     //   await getFullPrinterList(pdf);
     // }
-    await clearDirectory(uploadDir);
+    // await clearDirectory(uploadDir);
 
     return res.status(200).json({ success: "barcodes generated successfully" });
   } catch (error) {

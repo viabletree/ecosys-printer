@@ -31,6 +31,11 @@ export const libreQueue = new PQueue({
   interval: 1000,
 });
 
+const templateFileCache = new Map();
+const barcodeImageCache = new Map();
+const templateMetadataCache = new Map();
+const qrImageCache = new Map();
+
 export function convertDocxToPdfLibreOffice(docxPath, outputDir) {
   return libreQueue.add(() => {
     return new Promise((resolve, reject) => {
@@ -66,6 +71,167 @@ export function convertDocxToPdfLibreOffice(docxPath, outputDir) {
         const pdfPath = path.join(
           outputDir,
           path.basename(docxPath, ".docx") + ".pdf",
+        );
+
+        resolve(pdfPath);
+      });
+    });
+  });
+}
+
+let libreProcess = null;
+
+const sofficePath =
+  process.platform === "win32"
+    ? "C:\\Program Files\\LibreOffice\\program\\soffice.exe"
+    : "libreoffice";
+
+const libreProfile =
+  process.platform === "win32"
+    ? "file:///C:/temp/libreoffice-profile"
+    : "file:///tmp/libreoffice-profile";
+
+
+let isStarting = false;
+
+export async function startLibreOfficeServer() {
+  if (
+    libreProcess &&
+    !libreProcess.killed &&
+    libreProcess.exitCode === null
+  ) {
+    return;
+  }
+
+  if (isStarting) return;
+
+  isStarting = true;
+
+  const args = [
+    "--headless",
+    "--invisible",
+    "--nologo",
+    "--nodefault",
+    "--nofirststartwizard",
+    "--norestore",
+    "--nolockcheck",
+    "--accept=socket,host=127.0.0.1,port=2002;urp;",
+    `-env:UserInstallation=${libreProfile}`,
+  ];
+
+  libreProcess = spawn(sofficePath, args, {
+    stdio: "ignore",
+    windowsHide: true,
+  });
+
+  libreProcess.on("spawn", () => {
+    console.log("LibreOffice started");
+  });
+
+  libreProcess.on("exit", (code) => {
+    console.warn("LibreOffice stopped", code);
+    libreProcess = null;
+
+    // auto restart
+    setTimeout(() => {
+      startLibreOfficeServer().catch(console.error);
+    }, 1000);
+  });
+
+  libreProcess.on("error", (err) => {
+    console.error("LibreOffice error:", err);
+    libreProcess = null;
+  });
+
+  await new Promise((r) => setTimeout(r, 2000));
+
+  isStarting = false;
+}
+
+async function clearOldFiles2(
+  dir,
+  olderThanMinutes = 30,
+) {
+  const files = await fsPromise.readdir(dir);
+
+  const now = Date.now();
+
+  await Promise.all(
+    files.map(async (file) => {
+      const filePath = path.join(dir, file);
+
+      const stat =
+        await fsPromise.stat(filePath);
+
+      const ageMinutes =
+        (now - stat.mtimeMs) /
+        1000 /
+        60;
+
+      if (
+        ageMinutes >
+        olderThanMinutes
+      ) {
+        await fsPromise.unlink(
+          filePath
+        );
+      }
+    }),
+  );
+}
+
+export async function convertNewDocxToPdfLibreOffice(
+  docxPath,
+  outputDir
+) {
+  return libreQueue.add(async () => {
+    console.log(
+      "Libre process alive:",
+      libreProcess?.pid,
+      libreProcess?.exitCode
+    );
+    await startLibreOfficeServer();
+
+    return new Promise((resolve, reject) => {
+      const args = [
+        "--headless",
+        "--invisible",
+        "--nologo",
+        "--nodefault",
+        "--nofirststartwizard",
+        "--norestore",
+        "--nolockcheck",
+
+        "--convert-to",
+        "pdf:writer_pdf_Export",
+
+        "--outdir",
+        outputDir,
+
+        docxPath,
+
+        `-env:UserInstallation=${libreProfile}`,
+      ];
+
+      const cmd = spawn(sofficePath, args, {
+        windowsHide: true,
+        stdio: "ignore",
+      });
+
+      cmd.on("error", reject);
+
+      cmd.on("close", (code) => {
+        if (code !== 0) {
+          return reject(
+            new Error(
+              `LibreOffice conversion failed (${code})`
+            )
+          );
+        }
+
+        const pdfPath = path.join(
+          outputDir,
+          path.basename(docxPath, ".docx") + ".pdf"
         );
 
         resolve(pdfPath);
@@ -160,7 +326,7 @@ async function generateDocument(filePath, data) {
     await fsPromise.writeFile(docxPath, buffer);
 
     // Convert DOCX → PDF
-    await convertDocxToPdfLibreOffice(docxPath, uploadDir);
+    await convertNewDocxToPdfLibreOffice(docxPath, uploadDir);
 
     // Remove DOCX (optional)
     // await fsPromise.unlink(docxPath);
@@ -170,6 +336,274 @@ async function generateDocument(filePath, data) {
     console.error("generateDocument ERROR:", err);
     throw new Error(err.message || "Document generation failed");
   }
+}
+
+async function preloadBarcodeImages2(
+  data
+) {
+  const uniqueBarcodes =
+    new Set();
+
+  function walk(obj) {
+    if (!obj) return;
+
+    if (
+      Array.isArray(obj)
+    ) {
+      obj.forEach(walk);
+      return;
+    }
+
+    if (
+      typeof obj ===
+      "object"
+    ) {
+      if (obj.barcode) {
+        uniqueBarcodes.add(
+          obj.barcode
+        );
+      }
+
+      Object.values(obj)
+        .forEach(walk);
+    }
+  }
+
+  walk(data);
+
+  await Promise.all(
+    [...uniqueBarcodes].map(
+      (barcode) =>
+        generateBarcodeCached2(
+          barcode
+        )
+    )
+  );
+}
+
+async function generateDocument2(
+  filePath,
+  data
+) {
+  try {
+    console.time("generateDocument2");
+
+    // ========================================
+    // Load template from cache
+    // ========================================
+    console.time("getTemplate");
+
+    const template =
+      await getTemplate(filePath);
+
+    console.timeEnd("getTemplate");
+
+    // ========================================
+    // Cached variable extraction
+    // ========================================
+    console.time("processDocxVariables2");
+
+    const updatedData =
+      await processDocxVariables2(
+        filePath,
+        data
+      );
+
+    console.timeEnd(
+      "processDocxVariables2"
+    );
+
+    // ========================================
+    // Pre-generate unique barcodes
+    // ========================================
+    console.time(
+      "preloadBarcodeImages2"
+    );
+
+    await preloadBarcodeImages2(
+      updatedData
+    );
+
+    console.timeEnd(
+      "preloadBarcodeImages2"
+    );
+
+    // ========================================
+    // Generate DOCX
+    // ========================================
+    console.time("createReport");
+
+    const buffer =
+      await createReport({
+        template,
+
+        cmdDelimiter: [
+          "{{",
+          "}}",
+        ],
+
+        data: updatedData,
+
+        failFast: false,
+
+        additionalJsContext: {
+          barcodeImage: async (
+            code,
+            rotation = 90,
+            height = 5,
+            width = 1.5
+          ) => ({
+            width,
+            height,
+
+            data:
+              await generateBarcodeCached2(
+                code,
+                rotation
+              ),
+
+            extension:
+              ".png",
+          }),
+
+          qrcodeImage: async (
+            val,
+            width = 1,
+            height = 1
+          ) => ({
+            width,
+            height,
+
+            data:
+              await generateQRCodeCached2(
+                val
+              ),
+
+            extension:
+              ".png",
+          }),
+        },
+      });
+
+    console.timeEnd(
+      "createReport"
+    );
+
+    // ========================================
+    // Paths
+    // ========================================
+    const baseName =
+      sanitizeFileName(
+        `${crypto.randomUUID()}-${path.basename(
+          filePath
+        )}`
+      );
+
+    const docxPath =
+      path.join(
+        uploadDir,
+        `${baseName}.docx`
+      );
+
+    const pdfPath =
+      path.join(
+        uploadDir,
+        `${baseName}.pdf`
+      );
+
+    // ========================================
+    // Save DOCX
+    // ========================================
+    console.time(
+      "writeDocx"
+    );
+
+    await fsPromise.writeFile(
+      docxPath,
+      buffer
+    );
+
+    console.timeEnd(
+      "writeDocx"
+    );
+
+    // ========================================
+    // DOCX -> PDF
+    // ========================================
+    console.time(
+      "convertToPdf"
+    );
+
+    await convertNewDocxToPdfLibreOffice(
+      docxPath,
+      uploadDir
+    );
+
+    console.timeEnd(
+      "convertToPdf"
+    );
+
+    // ========================================
+    // Delete temporary DOCX
+    // ========================================
+    fsPromise
+      .unlink(docxPath)
+      .catch(() => { });
+
+    console.timeEnd(
+      "generateDocument2"
+    );
+
+    return pdfPath;
+  } catch (err) {
+    console.error(
+      "generateDocument2 ERROR:",
+      err
+    );
+
+    throw new Error(
+      err.message ||
+      "Document generation failed"
+    );
+  }
+}
+
+async function getDocumentFile2(fileUrl) {
+  if (!fileUrl.endsWith(".docx") && !fileUrl.endsWith(".doc")) {
+    throw new Error("File must be a .docx or .doc file");
+  }
+
+  if (templateFileCache.has(fileUrl)) {
+    return templateFileCache.get(fileUrl);
+  }
+
+  const agent = new https.Agent({
+    rejectUnauthorized: false,
+  });
+
+  const response = await axios.get(fileUrl, {
+    responseType: "arraybuffer",
+    httpsAgent: agent,
+  });
+
+  if (response.status !== 200) {
+    throw new Error("Failed to download template");
+  }
+
+  const downloadedFileName = `${crypto.randomUUID()}-${fileUrl
+    .split("/")
+    .pop()}`;
+
+  const filePath = path.join(
+    uploadDir,
+    `${sanitizeFileName(downloadedFileName)}.docx`,
+  );
+
+  await fsPromise.writeFile(filePath, response.data);
+
+  templateFileCache.set(fileUrl, filePath);
+
+  return filePath;
 }
 
 async function getDocumentFile(fileUrl) {
@@ -236,6 +670,17 @@ async function finishedGoodsBrandPrint(fileUrl, data) {
     const filePath = await getDocumentFile(fileUrl);
     const _data = { ...data, ...applyFGBrandDefaultValue(data) };
     return await generateDocument(filePath, _data);
+  } catch (error) {
+    console.error({ error });
+    throw new Error(error.message);
+  }
+}
+async function finishedGoodsBrandPrint2(fileUrl, data) {
+  try {
+    console.log("finishedGoodsBrandPrint2");
+    const filePath = await getDocumentFile2(fileUrl);
+    const _data = { ...data, ...applyFGBrandDefaultValue(data) };
+    return await generateDocument2(filePath, _data);
   } catch (error) {
     console.error({ error });
     throw new Error(error.message);
@@ -387,6 +832,33 @@ async function processDocxVariables(filePath, data) {
   const updatedData = mapVariablesToData(docVariables, data);
   return updatedData;
 }
+async function processDocxVariables2(
+  filePath,
+  data
+) {
+  let docVariables =
+    templateMetadataCache.get(filePath);
+
+  if (!docVariables) {
+    docVariables =
+      await extractDocVariables(filePath);
+
+    templateMetadataCache.set(
+      filePath,
+      docVariables
+    );
+  }
+
+  checkVariablesInData(
+    docVariables,
+    data
+  );
+
+  return mapVariablesToData(
+    docVariables,
+    data
+  );
+}
 // Function to extract variables from text
 function findVariables(text) {
   const variableRegex = /{{(.*?)}}/g;
@@ -456,6 +928,30 @@ async function extractDocVariables(docxPath) {
 //   // return `data:image/png;base64,${pngBuffer.toString("base64")}`; // Embed as base64
 // }
 
+async function generateBarcodeCached2(
+  code,
+  rotation = 0
+) {
+  const key = `${code}_${rotation}`;
+
+  if (barcodeImageCache.has(key)) {
+    return barcodeImageCache.get(key);
+  }
+
+  const result =
+    await generateBarcode(
+      code,
+      rotation
+    );
+
+  barcodeImageCache.set(
+    key,
+    result
+  );
+
+  return result;
+}
+
 async function generateBarcode(code, rotation = 0) {
   return new Promise((resolve, reject) => {
     bwipjs.toBuffer(
@@ -501,6 +997,24 @@ async function generateBarcode(code, rotation = 0) {
 //     throw error;
 //   }
 // }
+
+async function generateQRCodeCached2(
+  text
+) {
+  if (qrImageCache.has(text)) {
+    return qrImageCache.get(text);
+  }
+
+  const result =
+    await generateQRCode(text);
+
+  qrImageCache.set(
+    text,
+    result
+  );
+
+  return result;
+}
 
 async function generateQRCode(text) {
   return new Promise(async (resolve, reject) => {
@@ -584,6 +1098,8 @@ async function generateQRCodeSVG(code) {
 
 export {
   finishedGoodsBrandPrint,
+  finishedGoodsBrandPrint2,
+  clearOldFiles2,
   groupPackPrint,
   generateDocument,
   getDocumentFile,
