@@ -12,7 +12,9 @@ import slugify from "slugify";
 import {
   applyDefaultValues,
   generateDocument,
+  generateDocument2,
   getDocumentFile,
+  getDocumentFile2,
 } from "./autoGenerate.js";
 
 dotenv.config();
@@ -174,14 +176,14 @@ const generateFinishedGoodsSticker = async (filePath, item, printer) => {
   await clearDirectory(uploadDir);
 };
 const generateGroupPackSticker = async (filePath, item, printer) => {
-  const file = await getDocumentFile(filePath);
-  const pdf = await generateDocument(file, item);
+  const file = await getDocumentFile2(filePath);
+  const pdf = await generateDocument2(file, item);
   // const rotatedPdf = `${uploadDir}rotated_output_${item.barcode}.pdf`;
   // await rotatePdf(pdf, rotatedPdf);
 
   await getPrinterList(pdf, printer, "");
   // remove all files inside uploads directory
-  await clearDirectory(uploadDir);
+  // await clearDirectory(uploadDir);
 };
 
 const generateInventoryBarcodeSticker = async (filePath, item, printer) => {
